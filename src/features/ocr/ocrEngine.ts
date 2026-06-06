@@ -1,5 +1,15 @@
-import Tesseract from 'tesseract.js'
+import { supabase } from '@/services/supabase/client'
+import { normalizarData, normalizarHora } from '@/features/ocr/dateTimeParser'
 import type { OcrResult } from '@/types'
+
+export { normalizarData, normalizarHora } from '@/features/ocr/dateTimeParser'
+
+// ─── Debug logger (silencioso em produção) ────────────────────────────────────
+
+const DEBUG = import.meta.env.DEV
+function dbg(...args: unknown[]) {
+  if (DEBUG) console.log('[ocrEngine]', ...args)
+}
 
 // ─── Pré-processamento ────────────────────────────────────────────────────────
 
@@ -33,7 +43,6 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
       const imageData = ctx.getImageData(0, 0, width, height)
       const data = imageData.data
 
-      // Threshold de Otsu
       const hist = new Array(256).fill(0)
       const total = width * height
       for (let i = 0; i < data.length; i += 4) {
@@ -62,9 +71,9 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
       }
       ctx.putImageData(imageData, 0, 0)
 
-      const result = canvas.toDataURL('image/png')
+      const dataUrl = canvas.toDataURL('image/png')
       if (imageSource instanceof Blob) URL.revokeObjectURL(url)
-      resolve(result)
+      resolve(dataUrl)
     }
 
     img.onerror = () => reject(new Error('Falha ao carregar imagem'))
@@ -72,137 +81,40 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
   })
 }
 
-// ─── Correção de erros comuns do OCR em texto térmico ─────────────────────────
-// O OCR confunde: 0↔O, 1↔I↔l, 2↔Z, 6↔G, .↔: etc.
+// ─── Chamada à Edge Function ──────────────────────────────────────────────────
 
-function corrigirOCR(texto: string): string {
-  return texto
-    // Normalizar separadores de hora: ponto vira dois-pontos entre dígitos
-    .replace(/(\d{1,2})\.(\d{2})\b/g, '$1:$2')
-    // Corrigir ano: OCR lê 2076 como 2026, 2O26→2026, Z026→2026
-    .replace(/\b(2)[O0o](\d{2})\b/g, '20$2')   // 2O26 → 2026
-    .replace(/\b[Z2]0([6-9]\d)\b/g, '20$1')     // Z076 → 2076 → normaliza abaixo
-    // Ano com dígito trocado (2076→2026, 2O26→2026)
-    .replace(/\b20([5-9]\d)\b/g, (m, d) => {
-      const n = parseInt(d)
-      // se o segundo dígito parece erro (>3 para ano >= 2040 sendo improvável)
-      if (n > 39) return `20${String(n - 50).padStart(2,'0')}`
-      return m
-    })
-    // Uppercase para normalizar
-    .toUpperCase()
-}
+async function chamarVisionAPI(base64: string): Promise<string> {
+  const conteudo = base64.includes(',') ? base64.split(',')[1] : base64
 
-// ─── Normalização de data ─────────────────────────────────────────────────────
-
-function normalizarData(textoOriginal: string): string | null {
-  const texto = corrigirOCR(textoOriginal)
-
-  // Estratégia 1: DATA: DD/MM/YYYY com qualquer separador/espaço entre componentes
-  const m1 = texto.match(/DATA\s*:?\s*(\d{1,2})\s*[\/\-\s]\s*(\d{1,2})\s*[\/\-\s]\s*(\d{4})/)
-  if (m1) {
-    const d = m1[1].padStart(2, '0'), mo = m1[2].padStart(2, '0'), y = m1[3]
-    if (+d >= 1 && +d <= 31 && +mo >= 1 && +mo <= 12 && +y >= 2020 && +y <= 2099)
-      return `${d}/${mo}/${y}`
-  }
-
-  // Estratégia 2: extrai só dígitos após DATA: (resolve "04/0 6/2026")
-  const m2 = texto.match(/DATA\s*:?\s*([\d\s\/\-]{5,16})/)
-  if (m2) {
-    const digits = m2[1].replace(/\D/g, '')
-    if (digits.length >= 8) {
-      const d = digits.slice(0, 2), mo = digits.slice(2, 4), y = digits.slice(4, 8)
-      if (+d >= 1 && +d <= 31 && +mo >= 1 && +mo <= 12 && +y >= 2020 && +y <= 2099)
-        return `${d}/${mo}/${y}`
-    }
-  }
-
-  // Estratégia 3: DD/MM/YYYY em qualquer lugar do texto
-  const m3 = texto.match(/\b(\d{2})\/(\d{2})\/(20\d{2})\b/)
-  if (m3) {
-    const d = m3[1], mo = m3[2], y = m3[3]
-    if (+d >= 1 && +d <= 31 && +mo >= 1 && +mo <= 12) return `${d}/${mo}/${y}`
-  }
-
-  // Estratégia 4: 8 dígitos consecutivos após DATA (ex: "DATA:04062026")
-  const m4 = texto.match(/DATA\s*:?\s*\D{0,4}(\d{8})/)
-  if (m4) {
-    const digits = m4[1]
-    const d = digits.slice(0, 2), mo = digits.slice(2, 4), y = digits.slice(4, 8)
-    if (+d >= 1 && +d <= 31 && +mo >= 1 && +mo <= 12 && +y >= 2020 && +y <= 2099)
-      return `${d}/${mo}/${y}`
-  }
-
-  return null
-}
-
-// ─── Normalização de hora ─────────────────────────────────────────────────────
-
-function normalizarHora(textoOriginal: string): string | null {
-  const texto = corrigirOCR(textoOriginal)
-
-  // Com âncora HORA: (aceita . ou : como separador — já normalizado acima)
-  const m1 = texto.match(/HORA\s*:?\s*(\d{1,2})\s*[:\.]\s*(\d{2})/)
-  if (m1) {
-    const h = +m1[1], min = +m1[2]
-    if (h <= 23 && min <= 59) return `${String(h).padStart(2, '0')}:${m1[2]}`
-  }
-
-  // Qualquer HH:MM no texto
-  for (const m of texto.matchAll(/\b(\d{1,2}):(\d{2})\b/g)) {
-    const h = +m[1], min = +m[2]
-    if (h <= 23 && min <= 59) return `${String(h).padStart(2, '0')}:${m[2]}`
-  }
-
-  return null
-}
-
-// ─── Worker singleton ─────────────────────────────────────────────────────────
-
-let worker: Tesseract.Worker | null = null
-
-async function getWorker(): Promise<Tesseract.Worker> {
-  if (worker) return worker
-  worker = await Tesseract.createWorker('eng', 1, {
-    logger: () => {},
-    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5/tesseract-core-simd.wasm.js',
+  const { data, error } = await supabase.functions.invoke('ocr-vision', {
+    body: { image: conteudo },
   })
-  await worker.setParameters({
-    tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK,
-    preserve_interword_spaces: '1',
-  })
-  return worker
+
+  if (error) throw new Error(`Edge Function error: ${error.message}`)
+  if (data?.error) throw new Error(`Vision API error: ${data.error}`)
+
+  return (data?.text as string) ?? ''
 }
 
-export async function terminateOCR(): Promise<void> {
-  if (worker) { await worker.terminate(); worker = null }
-}
-
-// ─── Processar OCR ────────────────────────────────────────────────────────────
+// ─── Processamento OCR principal ──────────────────────────────────────────────
 
 export async function processarOCR(imageSource: string | File | Blob): Promise<OcrResult> {
   try {
+    dbg('Iniciando pré-processamento')
     const preprocessed = await preprocessImage(imageSource)
-    const w = await getWorker()
+    dbg('Pré-processamento concluído, enviando para Vision API')
 
-    const { data: d1 } = await w.recognize(preprocessed)
-    let dataExtraida = normalizarData(d1.text)
-    let horaExtraida = normalizarHora(d1.text)
-    let textoBruto = d1.text
-    let confianca = Math.round(d1.confidence)
+    const textoBruto = await chamarVisionAPI(preprocessed)
+    dbg('Texto bruto retornado pela Vision API:', textoBruto)
 
-    // Segunda tentativa com PSM AUTO se não encontrou
-    if (!dataExtraida || !horaExtraida) {
-      await w.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.AUTO })
-      const { data: d2 } = await w.recognize(preprocessed)
-      await w.setParameters({ tessedit_pageseg_mode: Tesseract.PSM.SINGLE_BLOCK })
-      dataExtraida = dataExtraida ?? normalizarData(d2.text)
-      horaExtraida = horaExtraida ?? normalizarHora(d2.text)
-      textoBruto = d1.text + '\n---PSM_AUTO---\n' + d2.text
-      confianca = Math.max(confianca, Math.round(d2.confidence))
-    }
+    const dataExtraida = normalizarData(textoBruto)
+    const horaExtraida = normalizarHora(textoBruto)
+
+    dbg('Data identificada:', dataExtraida)
+    dbg('Hora identificada:', horaExtraida)
+
+    const confianca = dataExtraida && horaExtraida ? 95 : dataExtraida || horaExtraida ? 50 : 0
+    dbg('Confiança:', confianca, '| Sucesso:', !!(dataExtraida && horaExtraida))
 
     return {
       data: dataExtraida,
@@ -212,7 +124,19 @@ export async function processarOCR(imageSource: string | File | Blob): Promise<O
       sucesso: !!(dataExtraida && horaExtraida),
     }
   } catch (err) {
-    return { data: null, hora: null, confianca: 0, texto_bruto: String(err), sucesso: false }
+    dbg('Exceção no processamento OCR:', err)
+    return {
+      data: null,
+      hora: null,
+      confianca: 0,
+      texto_bruto: String(err),
+      sucesso: false,
+    }
   }
 }
 
+// ─── terminateOCR — mantido por compatibilidade (no-op) ───────────────────────
+
+export async function terminateOCR(): Promise<void> {
+  // no-op
+}
