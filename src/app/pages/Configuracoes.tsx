@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { LogOut, User, Shield, Trash2, Download } from 'lucide-react'
+import { LogOut, User, Shield, Trash2, Download, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/features/auth/useAuth'
 import { useAuthStore } from '@/store'
 import { supabase } from '@/services/supabase/client'
+import { syncWorkRecords, processSyncQueue } from '@/features/work-records/syncService'
 
 export function Configuracoes() {
   const { signOut, profile } = useAuth()
@@ -10,6 +11,31 @@ export function Configuracoes() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
+
+  const handleSincronizar = async () => {
+    if (syncing) return
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      await syncWorkRecords()
+      const { synced, failed } = await processSyncQueue()
+      if (synced > 0 && failed === 0) {
+        setSyncResult(`✓ ${synced} registro${synced !== 1 ? 's' : ''} sincronizado${synced !== 1 ? 's' : ''} com sucesso.`)
+      } else if (synced > 0 && failed > 0) {
+        setSyncResult(`✓ ${synced} sincronizado${synced !== 1 ? 's' : ''}, ${failed} falhou.`)
+      } else if (failed > 0) {
+        setSyncResult(`Falha ao sincronizar ${failed} registro${failed !== 1 ? 's' : ''}.`)
+      } else {
+        setSyncResult('Tudo já estava sincronizado.')
+      }
+    } catch {
+      setSyncResult('Erro ao tentar sincronizar. Tente novamente.')
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   const handleExportarDados = async () => {
     if (!userId) return
@@ -76,6 +102,31 @@ export function Configuracoes() {
           </div>
         </div>
       )}
+
+      {/* Sincronização */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <RefreshCw size={16} className="text-emerald-400" />
+          <h3 className="font-semibold text-sm">Sincronização</h3>
+        </div>
+        <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+          Registros salvos offline serão enviados ao servidor.
+          Use este botão caso algum registro apareça como <strong className="text-slate-300">pendente sync</strong>.
+        </p>
+        <button
+          onClick={handleSincronizar}
+          disabled={syncing}
+          className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
+        >
+          <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+          {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
+        </button>
+        {syncResult && (
+          <p className={`text-xs mt-2 text-center ${syncResult.startsWith('✓') ? 'text-green-400' : 'text-red-400'}`}>
+            {syncResult}
+          </p>
+        )}
+      </div>
 
       {/* LGPD */}
       <div className="card">
