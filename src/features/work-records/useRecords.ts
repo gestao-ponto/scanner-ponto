@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { format } from 'date-fns'
 import { useRecordsStore, useAuthStore, useOvertimeModal } from '@/store'
 import { adicionarRegistro, getRegistrosPeriodo, excluirRegistro } from '@/features/work-records/recordsService'
@@ -41,6 +41,10 @@ export function useRecords() {
   }, [carregarRegistros])
 
   // Adicionar nova marcação
+  // Ref para acessar records sem torná-lo dependência do useCallback
+  const recordsRef = useRef(records)
+  useEffect(() => { recordsRef.current = records }, [records])
+
   const adicionarMarcacao = useCallback(
     async (data: string, hora: string, origem: OrigemMarcacao) => {
       if (!userId) throw new Error('Usuário não autenticado')
@@ -49,8 +53,9 @@ export function useRecords() {
       addRecord(record)
 
       // Verificar se o dia agora tem banco de horas ou hora extra
+      // Usa recordsRef para ler o estado atual sem closure stale
       const agrupado = agruparPorDia([
-        ...records.filter((r) => r.data === data),
+        ...recordsRef.current.filter((r) => r.data === data),
         record,
       ])
 
@@ -73,7 +78,7 @@ export function useRecords() {
 
       return record
     },
-    [userId, records, addRecord, openModal]
+    [userId, addRecord, openModal]
   )
 
   // Excluir marcação

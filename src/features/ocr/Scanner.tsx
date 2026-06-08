@@ -85,6 +85,9 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 })
   const filaRef = useRef<ItemFila[]>([])
   const contadorId = useRef(0)
+  // Deduplicação: evita que dois inputs disparem handleFiles com o mesmo arquivo
+  const ultimosArquivos = useRef<string>('')
+  const ultimaFilagem = useRef<number>(0)
 
   // Atualizar item da fila de forma segura
   const atualizarItem = useCallback((id: number, patch: Partial<ItemFila>) => {
@@ -222,8 +225,20 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return
     const validos = Array.from(files).filter((f) => f.type.startsWith('image/'))
+    if (validos.length === 0) return
+
+    // Deduplicação: ignora chamada duplicada dentro de 800ms com os mesmos arquivos
+    const assinatura = validos.map((f) => `${f.name}|${f.size}|${f.lastModified}`).join(',')
+    const agora = Date.now()
+    if (assinatura === ultimosArquivos.current && agora - ultimaFilagem.current < 800) {
+      dbg('handleFiles ignorado — duplicata detectada')
+      return
+    }
+    ultimosArquivos.current = assinatura
+    ultimaFilagem.current = agora
+
     dbg(`Arquivos recebidos: ${files.length}, válidos: ${validos.length}`)
-    if (validos.length > 0) processarFila(validos)
+    processarFila(validos)
   }
 
   const confirmarItem = async (id: number) => {

@@ -38,7 +38,9 @@ const TIPOS_ORDEM: TipoMarcacao[] = [
 
 export function atribuirTipos(marcacoes: { hora: string }[]): TipoMarcacao[] {
   const ordenadas = [...marcacoes].sort((a, b) => a.hora.localeCompare(b.hora))
-  return ordenadas.map((_, i) => TIPOS_ORDEM[i] ?? 'entrada_noite')
+  // Cicla pelos 6 tipos disponíveis — evita fallback fixo em 'entrada_noite'
+  // para dias com mais de 6 marcações (ex: duplicatas acidentais)
+  return ordenadas.map((_, i) => TIPOS_ORDEM[i % TIPOS_ORDEM.length])
 }
 
 // ─── Verificar se marcação está dentro da tolerância de um ponto ──────────────
