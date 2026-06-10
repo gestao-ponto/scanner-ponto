@@ -26,7 +26,7 @@ const INICIO_BANCO = SAIDA_NORMAL_MAX  // 18:05
 // Hora extra começa após 20:05 (tolerância no limite do banco)
 const INICIO_EXTRA = LIMITE_BANCO + TOL  // 20:05
 
-// ─── Mapeamento de marcação por posição ───────────────────────────────────────
+// ─── Mapeamento de marcação por posição (fallback) ────────────────────────────
 const TIPOS_ORDEM: TipoMarcacao[] = [
   'entrada_manha',
   'saida_manha',
@@ -36,11 +36,39 @@ const TIPOS_ORDEM: TipoMarcacao[] = [
   'saida_noite',
 ]
 
+// ─── Classificar tipo pelo horário ────────────────────────────────────────────
+//
+// Cada horário pertence a uma "zona" definida pelas janelas de tolerância.
+// Dentro da zona, a alternância entrada/saída usa a paridade do índice ordinal.
+//
+// Zonas:
+//   07:55–08:05  → entrada_manha  (janela de entrada)
+//   08:06–11:54  → saida_manha    (período manhã — só pode estar saindo)
+//   11:55–12:05  → saida_manha    (janela saída almoço)
+//   13:55–14:05  → entrada_tarde  (janela retorno almoço)
+//   14:06–17:54  → entrada_tarde / saida_tarde (por paridade)
+//   17:55–18:05  → saida_tarde    (janela saída normal)
+//   > 18:05      → entrada_noite / saida_noite (por paridade)
+//   12:06–13:54  → fallback posicional (intervalo de almoço — horário incomum)
+//
+function classificarPorHorario(hora: string, posicao: number): TipoMarcacao {
+  const min = horaParaMinutos(hora)
+
+  if (min >= ENTRADA_MIN && min <= ENTRADA_MAX)           return 'entrada_manha'
+  if (min > ENTRADA_MAX && min < SAIDA_ALMOCO_MIN)        return 'saida_manha'
+  if (min >= SAIDA_ALMOCO_MIN && min <= SAIDA_ALMOCO_MAX) return 'saida_manha'
+  if (min >= RETORNO_ALMOCO_MIN && min <= RETORNO_ALMOCO_MAX) return 'entrada_tarde'
+  if (min > RETORNO_ALMOCO_MAX && min < SAIDA_NORMAL_MIN) return posicao % 2 === 0 ? 'entrada_tarde' : 'saida_tarde'
+  if (min >= SAIDA_NORMAL_MIN && min <= SAIDA_NORMAL_MAX) return 'saida_tarde'
+  if (min > SAIDA_NORMAL_MAX)                             return posicao % 2 === 0 ? 'entrada_noite' : 'saida_noite'
+
+  // Zona ambígua: intervalo de almoço 12:06–13:54 → fallback posicional
+  return TIPOS_ORDEM[posicao % TIPOS_ORDEM.length]
+}
+
 export function atribuirTipos(marcacoes: { hora: string }[]): TipoMarcacao[] {
   const ordenadas = [...marcacoes].sort((a, b) => a.hora.localeCompare(b.hora))
-  // Cicla pelos 6 tipos disponíveis — evita fallback fixo em 'entrada_noite'
-  // para dias com mais de 6 marcações (ex: duplicatas acidentais)
-  return ordenadas.map((_, i) => TIPOS_ORDEM[i % TIPOS_ORDEM.length])
+  return ordenadas.map((m, i) => classificarPorHorario(m.hora, i))
 }
 
 // ─── Verificar se marcação está dentro da tolerância de um ponto ──────────────
