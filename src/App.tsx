@@ -1,3 +1,4 @@
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useAuth } from '@/features/auth/useAuth'
 import { Login } from '@/app/pages/Login'
 import { SetupPerfil } from '@/app/pages/SetupPerfil'
@@ -5,6 +6,13 @@ import { AppLayout } from '@/app/pages/AppLayout'
 
 export default function App() {
   const { isAuthenticated, isLoading, profile } = useAuth()
+
+  useRegisterSW({
+    onNeedRefresh() { window.location.reload() },
+    onRegisteredSW(_, r) {
+      setInterval(() => r?.update(), 60000)
+    },
+  })
 
   if (isLoading) {
     return (
