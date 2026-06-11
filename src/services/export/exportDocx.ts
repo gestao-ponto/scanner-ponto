@@ -72,7 +72,8 @@ function preencherLinhaDia(xml: string, diaStr: string, horarios: string[]): str
 
     const tcOld = tcs[tcIdx]
     // Inserir o run antes do </w:p> no TC
-    const tcNew = tcOld.replace('</w:p>', makeRun(hora) + '</w:p>')
+    const tcSemRuns = tcOld.replace(/<w:r>[\s\S]*?<\/w:r>/g, '')
+const tcNew = tcSemRuns.replace('</w:p>', makeRun(hora) + '</w:p>')
     trNew = trNew.replace(tcOld, tcNew)
   }
 
