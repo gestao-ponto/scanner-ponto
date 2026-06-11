@@ -1,152 +1,161 @@
 import { useMemo } from 'react'
-import { Clock, TrendingUp, Calendar, AlertCircle, CheckCircle } from 'lucide-react'
+import { Clock, TrendingUp, AlertCircle, CheckCircle, Calendar } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
+import { useAuthStore, useThemeStore } from '@/store'
 import { calcularTotaisPeriodo } from '@/features/work-records/calculations'
 import { minutosParaLabel, periodoReadyToClose, getDiasUteisNoPeriodo } from '@/utils/dateUtils'
 import { isWeekend } from 'date-fns'
+import { ScanLine, FileDown, CalendarDays, List } from 'lucide-react'
 
 export function Dashboard() {
   const { records, summaries, periodo, diasPendentes } = useRecords()
+  const { profile } = useAuthStore()
 
-  const totais = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
-
-  const diasUteis = useMemo(() => getDiasUteisNoPeriodo(periodo).length, [periodo])
-
+  const totais  = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
+  const diasUteis    = useMemo(() => getDiasUteisNoPeriodo(periodo).length, [periodo])
   const diasCompletos = summaries.filter((s) => s.status === 'completo').length
-
+  const progresso    = diasUteis > 0 ? (diasCompletos / diasUteis) * 100 : 0
   const prontoParaFechar = periodoReadyToClose(periodo)
 
+  const primeiroNome = profile?.nome?.split(' ')[0] ?? 'Colaborador'
+
+  const hora = new Date().getHours()
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
+
   return (
-    <div className="p-4 space-y-4">
-      {/* Alerta de fechamento */}
+    <div className="p-4 space-y-3">
+
+      {/* Alerta fechamento */}
       {prontoParaFechar && (
-        <div className="bg-amber-900/50 border border-amber-600 rounded-2xl p-4 flex items-start gap-3">
-          <AlertCircle size={18} className="text-amber-400 mt-0.5 shrink-0" />
+        <div className="rounded-2xl p-3 flex items-start gap-3"
+          style={{ background: 'var(--badge-yellow-bg)', border: '1px solid var(--badge-yellow-text)33' }}>
+          <AlertCircle size={16} style={{ color: 'var(--badge-yellow-text)', marginTop: 1 }} className="shrink-0" />
           <div>
-            <p className="font-semibold text-amber-300 text-sm">Período pronto para fechamento</p>
-            <p className="text-xs text-amber-400 mt-0.5">{periodo.label}</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--badge-yellow-text)' }}>
+              Período pronto para fechamento
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{periodo.label}</p>
           </div>
         </div>
       )}
 
+      {/* Saudação */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{saudacao},</p>
+          <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{primeiroNome}</p>
+        </div>
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
+          style={{ background: '#C0392B22', border: '1.5px solid #C0392B55', color: '#C0392B' }}>
+          {primeiroNome[0]}
+        </div>
+      </div>
+
       {/* Período */}
-      <div className="card">
-        <p className="text-xs text-slate-400 mb-1">Período atual</p>
-        <p className="font-semibold text-slate-100">{periodo.label}</p>
+      <div className="rounded-xl px-3 py-2.5 flex items-center justify-between"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Período atual</span>
+        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{periodo.label}</span>
       </div>
 
-      {/* Cards de stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Stats 2x2 */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <StatCard icon={<Clock size={16} color="#3b82f6" />}    label="Trabalhadas"  value={minutosParaLabel(totais.horasTrabalhadas)} sub="neste período" />
+        <StatCard icon={<TrendingUp size={16} color="#f59e0b" />} label="Banco"      value={minutosParaLabel(totais.bancoHoras)}        sub="acumulado" />
+        <StatCard icon={<AlertCircle size={16} color="#ef4444" />} label="Extras"    value={minutosParaLabel(totais.horasExtras)}       sub="este período" />
         <StatCard
-          icon={<Clock size={20} className="text-blue-400" />}
-          label="Horas trabalhadas"
-          value={minutosParaLabel(totais.horasTrabalhadas)}
-          color="blue"
-        />
-        <StatCard
-          icon={<TrendingUp size={20} className="text-amber-400" />}
-          label="Banco de horas"
-          value={minutosParaLabel(totais.bancoHoras)}
-          color="amber"
-        />
-        <StatCard
-          icon={<AlertCircle size={20} className="text-red-400" />}
-          label="Horas extras"
-          value={minutosParaLabel(totais.horasExtras)}
-          color="red"
-        />
-        <StatCard
-          icon={<Calendar size={20} className="text-slate-400" />}
-          label="Dias pendentes"
-          value={String(diasPendentes.length)}
-          color={diasPendentes.length > 0 ? 'red' : 'green'}
-        />
-        <StatCard
-          icon={<CheckCircle size={20} className="text-green-400" />}
-          label="Dias completos"
-          value={`${diasCompletos}/${diasUteis}`}
-          color="green"
-        />
-        <StatCard
-          icon={<Clock size={20} className="text-purple-400" />}
-          label="Intrajornada"
-          value={minutosParaLabel(totais.intrajornada)}
-          color="purple"
+          icon={<CheckCircle size={16} color="#22c55e" />}
+          label="Completos"
+          value={`${diasCompletos}`}
+          sub={`de ${diasUteis} dias`}
+          badge={diasPendentes.length > 0 ? `${diasPendentes.length} pendente${diasPendentes.length > 1 ? 's' : ''}` : undefined}
         />
       </div>
 
-      {/* Progresso do período */}
+      {/* Progresso */}
       <div className="card">
         <div className="flex justify-between items-center mb-2">
-          <p className="text-sm text-slate-400">Progresso do período</p>
-          <p className="text-sm font-semibold text-slate-200">
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Progresso do período</p>
+          <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
             {diasCompletos}/{diasUteis} dias
           </p>
         </div>
-        <div className="h-2.5 bg-slate-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-red-600 to-red-400 rounded-full transition-all duration-500"
-            style={{ width: `${diasUteis > 0 ? (diasCompletos / diasUteis) * 100 : 0}%` }}
-          />
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+          <div className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${progresso}%`, background: '#C0392B' }} />
+        </div>
+        <div className="flex gap-1 mt-2">
+          {Array.from({ length: Math.min(diasUteis, 12) }, (_, i) => {
+            const tipo = i < diasCompletos ? 'done' : i === diasCompletos ? 'current' : 'empty'
+            return (
+              <div key={i} className="flex-1 h-0.5 rounded-full"
+                style={{
+                  background: tipo === 'done' ? '#C0392B' : tipo === 'current' ? '#f59e0b' : 'var(--border)'
+                }} />
+            )
+          })}
         </div>
       </div>
 
-      {/* Distribuição por status */}
-      {summaries.length > 0 && (
-        <div className="card">
-          <p className="text-sm text-slate-400 mb-3">Distribuição dos dias</p>
-          <div className="space-y-2">
-            {[
-              { status: 'completo', label: 'Completo', color: 'bg-green-500' },
-              { status: 'incompleto', label: 'Incompleto', color: 'bg-yellow-500' },
-              { status: 'ausente', label: 'Ausente', color: 'bg-red-500' },
-            ].map(({ status, label, color }) => {
-              const count = summaries.filter((s) => s.status === status).length
-              const pct = diasUteis > 0 ? (count / diasUteis) * 100 : 0
-              return (
-                <div key={status} className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${color} shrink-0`} />
-                  <span className="text-xs text-slate-400 w-20">{label}</span>
-                  <div className="flex-1 h-1.5 bg-slate-700 rounded-full">
-                    <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="text-xs text-slate-400 w-6 text-right">{count}</span>
-                </div>
-              )
-            })}
-          </div>
+      {/* Ações rápidas */}
+      <div>
+        <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Ações rápidas</p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <QuickAction icon={<ScanLine size={16} color="#C0392B" />}   label="Escanear comprovante" accent />
+          <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}    label="Exportar cartão" />
+          <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />} label="Ver calendário" />
+          <QuickAction icon={<List size={16} color="var(--text-muted)" />}         label="Registros" />
         </div>
+      </div>
+
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value, sub, badge }: {
+  icon: React.ReactNode
+  label: string
+  value: string
+  sub: string
+  badge?: string
+}) {
+  return (
+    <div className="rounded-2xl p-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-1.5 mb-1.5">
+        {icon}
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      </div>
+      <p className="text-xl font-semibold leading-none" style={{ color: 'var(--text-primary)' }}>{value}</p>
+      <p className="text-[10px] mt-1" style={{ color: 'var(--text-faint)' }}>{sub}</p>
+      {badge && (
+        <span className="inline-block mt-1.5 text-[10px] px-1.5 py-0.5 rounded-full"
+          style={{ background: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' }}>
+          {badge}
+        </span>
       )}
     </div>
   )
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-  color,
-}: {
+function QuickAction({ icon, label, accent }: {
   icon: React.ReactNode
   label: string
-  value: string
-  color: 'blue' | 'amber' | 'red' | 'green' | 'purple'
+  accent?: boolean
 }) {
-  const bg: Record<string, string> = {
-    blue: 'from-blue-950 to-slate-800',
-    amber: 'from-amber-950 to-slate-800',
-    red: 'from-red-950 to-slate-800',
-    green: 'from-green-950 to-slate-800',
-    purple: 'from-purple-950 to-slate-800',
-  }
-
   return (
-    <div className={`bg-gradient-to-br ${bg[color]} border border-slate-700 rounded-2xl p-3`}>
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="rounded-2xl p-3 flex flex-col gap-2 cursor-pointer transition-opacity active:opacity-70"
+      style={{
+        background: accent ? 'var(--accent-bg)' : 'var(--bg-surface)',
+        border: `1px solid ${accent ? 'var(--accent-border)' : 'var(--border)'}`,
+      }}>
+      <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+        style={{ background: accent ? '#C0392B22' : 'var(--bg-overlay)' }}>
         {icon}
-        <span className="text-xs text-slate-400">{label}</span>
       </div>
-      <p className="text-xl font-bold text-slate-100">{value}</p>
+      <span className="text-xs leading-tight"
+        style={{ color: accent ? '#C0392B' : 'var(--text-secondary)' }}>
+        {label}
+      </span>
     </div>
   )
 }
