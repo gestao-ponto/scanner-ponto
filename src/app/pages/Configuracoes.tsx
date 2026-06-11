@@ -59,6 +59,7 @@ export function Configuracoes() {
     try {
       await supabase.from('work_records').delete().eq('user_id', userId)
       await supabase.from('overtime_records').delete().eq('user_id', userId)
+      await clearAllRecordsLocal()
       setMsg('Histórico excluído com sucesso.')
       setConfirmDelete(false)
     } finally {
