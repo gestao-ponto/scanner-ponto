@@ -140,35 +140,17 @@ export const useOvertimeModal = create<OvertimeModalState>((set) => ({
 interface UIState {
   isOnline: boolean
   hasPendingSync: boolean
+  activeTab: string
   setOnline: (v: boolean) => void
   setHasPendingSync: (v: boolean) => void
+  setActiveTab: (t: string) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
   isOnline: navigator.onLine,
   hasPendingSync: false,
+  activeTab: 'dashboard',
   setOnline: (v) => set({ isOnline: v }),
   setHasPendingSync: (v) => set({ hasPendingSync: v }),
+  setActiveTab: (t) => set({ activeTab: t }),
 }))
-// Adicionar ao final de src/store/index.ts
-
-// ─── Theme state ──────────────────────────────────────────────────────────────
-
-interface ThemeState {
-  theme: 'dark' | 'light'
-  toggleTheme: () => void
-}
-
-export const useThemeStore = create<ThemeState>()(
-  persist(
-    (set, get) => ({
-      theme: 'dark',
-      toggleTheme: () => {
-        const next = get().theme === 'dark' ? 'light' : 'dark'
-        set({ theme: next })
-        document.documentElement.setAttribute('data-theme', next)
-      },
-    }),
-    { name: 'ponto-theme', storage: createJSONStorage(() => localStorage) }
-  )
-)
