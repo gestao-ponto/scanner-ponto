@@ -46,7 +46,7 @@ export function Dashboard() {
           <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{primeiroNome}</p>
         </div>
         <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold"
-          style={{ background: '#C0392B22', border: '1.5px solid #C0392B55', color: '#C0392B' }}>
+          style={{ background: '#2563eb22', border: '1.5px solid #2563eb55', color: '#2563eb' }}>
           {primeiroNome[0]}
         </div>
       </div>
@@ -82,7 +82,7 @@ export function Dashboard() {
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
           <div className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progresso}%`, background: '#C0392B' }} />
+            style={{ width: `${progresso}%`, background: '#2563eb' }} />
         </div>
         <div className="flex gap-1 mt-2">
           {Array.from({ length: Math.min(diasUteis, 12) }, (_, i) => {
@@ -90,7 +90,7 @@ export function Dashboard() {
             return (
               <div key={i} className="flex-1 h-0.5 rounded-full"
                 style={{
-                  background: tipo === 'done' ? '#C0392B' : tipo === 'current' ? '#f59e0b' : 'var(--border)'
+                  background: tipo === 'done' ? '#2563eb' : tipo === 'current' ? '#f59e0b' : 'var(--border)'
                 }} />
             )
           })}
@@ -101,7 +101,7 @@ export function Dashboard() {
       <div>
         <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Ações rápidas</p>
         <div className="grid grid-cols-2 gap-2.5">
-          <QuickAction icon={<ScanLine size={16} color="#C0392B" />}   label="Escanear comprovante" accent />
+          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}   label="Escanear comprovante" accent />
           <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}    label="Exportar cartão" />
           <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />} label="Ver calendário" />
           <QuickAction icon={<List size={16} color="var(--text-muted)" />}         label="Registros" />
@@ -149,11 +149,11 @@ function QuickAction({ icon, label, accent }: {
         border: `1px solid ${accent ? 'var(--accent-border)' : 'var(--border)'}`,
       }}>
       <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-        style={{ background: accent ? '#C0392B22' : 'var(--bg-overlay)' }}>
+        style={{ background: accent ? '#2563eb22' : 'var(--bg-overlay)' }}>
         {icon}
       </div>
       <span className="text-xs leading-tight"
-        style={{ color: accent ? '#C0392B' : 'var(--text-secondary)' }}>
+        style={{ color: accent ? '#2563eb' : 'var(--text-secondary)' }}>
         {label}
       </span>
     </div>
