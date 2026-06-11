@@ -1,31 +1,29 @@
 import { useMemo } from 'react'
-import { Clock, TrendingUp, AlertCircle, CheckCircle, Calendar } from 'lucide-react'
+import { Clock, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
-import { useAuthStore, useThemeStore } from '@/store'
+import { useAuthStore, useUIStore, useThemeStore } from '@/store'
 import { calcularTotaisPeriodo } from '@/features/work-records/calculations'
 import { minutosParaLabel, periodoReadyToClose, getDiasUteisNoPeriodo } from '@/utils/dateUtils'
-import { isWeekend } from 'date-fns'
 import { ScanLine, FileDown, CalendarDays, List } from 'lucide-react'
 
 export function Dashboard() {
-  const { records, summaries, periodo, diasPendentes } = useRecords()
+  const { summaries, periodo, diasPendentes } = useRecords()
   const { profile } = useAuthStore()
+  const { setActiveTab } = useUIStore()
 
-  const totais  = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
+  const totais       = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
   const diasUteis    = useMemo(() => getDiasUteisNoPeriodo(periodo).length, [periodo])
   const diasCompletos = summaries.filter((s) => s.status === 'completo').length
   const progresso    = diasUteis > 0 ? (diasCompletos / diasUteis) * 100 : 0
   const prontoParaFechar = periodoReadyToClose(periodo)
 
   const primeiroNome = profile?.nome?.split(' ')[0] ?? 'Colaborador'
-
   const hora = new Date().getHours()
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite'
 
   return (
     <div className="p-4 space-y-3">
 
-      {/* Alerta fechamento */}
       {prontoParaFechar && (
         <div className="rounded-2xl p-3 flex items-start gap-3"
           style={{ background: 'var(--badge-yellow-bg)', border: '1px solid var(--badge-yellow-text)33' }}>
@@ -39,7 +37,6 @@ export function Dashboard() {
         </div>
       )}
 
-      {/* Saudação */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{saudacao},</p>
@@ -51,18 +48,16 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Período */}
       <div className="rounded-xl px-3 py-2.5 flex items-center justify-between"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Período atual</span>
         <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{periodo.label}</span>
       </div>
 
-      {/* Stats 2x2 */}
       <div className="grid grid-cols-2 gap-2.5">
-        <StatCard icon={<Clock size={16} color="#3b82f6" />}    label="Trabalhadas"  value={minutosParaLabel(totais.horasTrabalhadas)} sub="neste período" />
-        <StatCard icon={<TrendingUp size={16} color="#f59e0b" />} label="Banco"      value={minutosParaLabel(totais.bancoHoras)}        sub="acumulado" />
-        <StatCard icon={<AlertCircle size={16} color="#ef4444" />} label="Extras"    value={minutosParaLabel(totais.horasExtras)}       sub="este período" />
+        <StatCard icon={<Clock size={16} color="#3b82f6" />}      label="Trabalhadas"  value={minutosParaLabel(totais.horasTrabalhadas)} sub="neste período" />
+        <StatCard icon={<TrendingUp size={16} color="#f59e0b" />}  label="Banco"        value={minutosParaLabel(totais.bancoHoras)}        sub="acumulado" />
+        <StatCard icon={<AlertCircle size={16} color="#ef4444" />} label="Extras"       value={minutosParaLabel(totais.horasExtras)}       sub="este período" />
         <StatCard
           icon={<CheckCircle size={16} color="#22c55e" />}
           label="Completos"
@@ -72,7 +67,6 @@ export function Dashboard() {
         />
       </div>
 
-      {/* Progresso */}
       <div className="card">
         <div className="flex justify-between items-center mb-2">
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Progresso do período</p>
@@ -97,14 +91,13 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Ações rápidas */}
       <div>
         <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Ações rápidas</p>
         <div className="grid grid-cols-2 gap-2.5">
-          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}   label="Escanear comprovante" accent />
-          <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}    label="Exportar cartão" />
-          <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />} label="Ver calendário" />
-          <QuickAction icon={<List size={16} color="var(--text-muted)" />}         label="Registros" />
+          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}    label="Escanear comprovante" accent onClick={() => setActiveTab('scanner')} />
+          <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}     label="Exportar cartão"      onClick={() => setActiveTab('exportar')} />
+          <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />} label="Ver calendário"       onClick={() => setActiveTab('calendario')} />
+          <QuickAction icon={<List size={16} color="var(--text-muted)" />}         label="Registros"            onClick={() => setActiveTab('registros')} />
         </div>
       </div>
 
@@ -137,13 +130,15 @@ function StatCard({ icon, label, value, sub, badge }: {
   )
 }
 
-function QuickAction({ icon, label, accent }: {
+function QuickAction({ icon, label, accent, onClick }: {
   icon: React.ReactNode
   label: string
   accent?: boolean
+  onClick?: () => void
 }) {
   return (
     <div className="rounded-2xl p-3 flex flex-col gap-2 cursor-pointer transition-opacity active:opacity-70"
+      onClick={onClick}
       style={{
         background: accent ? 'var(--accent-bg)' : 'var(--bg-surface)',
         border: `1px solid ${accent ? 'var(--accent-border)' : 'var(--border)'}`,
