@@ -29,7 +29,7 @@ export function Configuracoes() {
       } else if (failed > 0) {
         setSyncResult(`Falha ao sincronizar ${failed} registro${failed !== 1 ? 's' : ''}.`)
       } else {
-        setSyncResult('Registros já estavam sincronizado.')
+        setSyncResult('Registros já estavam sincronizados.')
       }
     } catch {
       setSyncResult('Erro ao tentar sincronizar. Tente novamente.')
