@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/useAuth'
 import { useAuthStore } from '@/store'
 import { supabase } from '@/services/supabase/client'
 import { syncWorkRecords, processSyncQueue } from '@/features/work-records/syncService'
+import { clearAllRecordsLocal } from '@/services/supabase/localDb'
 
 export function Configuracoes() {
   const { signOut, profile } = useAuth()
