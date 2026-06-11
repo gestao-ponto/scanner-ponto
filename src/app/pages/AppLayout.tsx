@@ -29,7 +29,6 @@ const PAGE_TITLES: Record<Tab, string> = {
   config:     'Configurações',
 }
 
-// Ícone de impressão digital (igual ao mockup)
 function FingerprintIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
@@ -47,9 +46,19 @@ function FingerprintIcon({ size = 16 }: { size?: number }) {
 }
 
 export function AppLayout() {
-  const [tab, setTab] = useState<Tab>('dashboard')
-  const { isOnline, hasPendingSync, setOnline } = useUIStore()
+  const [tab, setTabLocal] = useState<Tab>('dashboard')
+  const { isOnline, hasPendingSync, setOnline, activeTab, setActiveTab } = useUIStore()
   const { theme, toggleTheme } = useThemeStore()
+
+  const setTab = (t: Tab) => {
+    setTabLocal(t)
+    setActiveTab(t)
+  }
+
+  // Reagir a mudanças de tab vindas do Dashboard (ações rápidas)
+  useEffect(() => {
+    if (activeTab !== tab) setTabLocal(activeTab as Tab)
+  }, [activeTab])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -72,7 +81,6 @@ export function AppLayout() {
     <div className="flex flex-col h-screen max-h-screen"
       style={{ background: 'var(--bg-base)' }}>
 
-      {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 shrink-0"
         style={{ background: 'var(--header-bg)', borderBottom: '1px solid var(--border-soft)' }}>
 
@@ -87,7 +95,6 @@ export function AppLayout() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Online status */}
           <div className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full"
             style={{ background: 'var(--online-bg)', border: '1px solid var(--online-border)' }}>
             <div className="w-1.5 h-1.5 rounded-full"
@@ -104,7 +111,6 @@ export function AppLayout() {
             </div>
           )}
 
-          {/* Toggle tema */}
           <button onClick={toggleTheme}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
             style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)' }}
@@ -114,7 +120,6 @@ export function AppLayout() {
               : <Moon size={14} style={{ color: 'var(--text-muted)' }} />}
           </button>
 
-          {/* Config */}
           <button onClick={() => setTab('config')}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
             style={{
@@ -126,7 +131,6 @@ export function AppLayout() {
         </div>
       </header>
 
-      {/* Conteúdo */}
       <main className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto">
           {tab === 'dashboard'  && <Dashboard />}
@@ -138,7 +142,6 @@ export function AppLayout() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
       <nav className="shrink-0 pb-safe"
         style={{ background: 'var(--nav-bg)', borderTop: '1px solid var(--nav-border)' }}>
         <div className="flex">
