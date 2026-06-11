@@ -56,8 +56,8 @@ Tabelas criadas com RLS completo:
 Supabase → Authentication → URL Configuration:
 
 ```
-Site URL: https://andressonmds1996.github.io/scanner-ponto
-Additional redirect URLs: https://andressonmds1996.github.io/scanner-ponto/
+Site URL: https://gestao-ponto.github.io/scanner-ponto/
+Additional redirect URL: https://gestao-ponto.github.io/scanner-ponto
 ```
 
 ---
@@ -65,7 +65,7 @@ Additional redirect URLs: https://andressonmds1996.github.io/scanner-ponto/
 ## 2. Configuração local
 
 ```bash
-git clone https://github.com/andressonmds1996/scanner-ponto
+git clone https://gestao-ponto.github.io/scanner-ponto
 cd scanner-ponto
 npm install
 cp .env.example .env
@@ -92,7 +92,7 @@ Settings → Pages → Source: **GitHub Actions**
 
 Push na `main` dispara o deploy automaticamente.
 
-URL: `https://andressonmds1996.github.io/scanner-ponto/`
+URL: `https://gestao-ponto.github.io/scanner-ponto`
 
 ---
 
