@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { format, eachDayOfInterval, getDay, isWeekend, isSameDay, parseISO } from 'date-fns'
+import { format, eachDayOfInterval, getDay, isWeekend } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
 import type { DailySummary } from '@/types'
 import { formatDataLonga, minutosParaLabel } from '@/utils/dateUtils'
@@ -23,10 +23,9 @@ export function Calendario() {
     [periodo]
   )
 
-  // Offset para alinhar a grade
   const primeiroOffset = getDay(periodo.inicio)
 
-  function statusDia(isoData: string, dia: Date): string {
+  function statusDia(isoData: string, dia: Date) {
     if (isWeekend(dia)) return 'fds'
     const s = summaryMap.get(isoData)
     if (!s) return 'ausente'
@@ -34,12 +33,12 @@ export function Calendario() {
     return s.status
   }
 
-  const corStatus: Record<string, string> = {
-    fds: 'bg-slate-700/50 text-slate-500',
-    ausente: 'bg-red-900/60 text-red-300 border border-red-700',
-    incompleto: 'bg-yellow-900/60 text-yellow-300 border border-yellow-700',
-    completo: 'bg-green-900/60 text-green-300 border border-green-700',
-    extra: 'bg-blue-900/60 text-blue-300 border border-blue-700',
+  const corStatus: Record<string, { bg: string; text: string; border: string }> = {
+    fds:       { bg: 'var(--cal-fds)',              text: 'var(--cal-fds-text)',          border: 'transparent' },
+    ausente:   { bg: 'var(--badge-red-bg)',          text: 'var(--badge-red-text)',        border: 'var(--badge-red-text)33' },
+    incompleto:{ bg: 'var(--badge-yellow-bg)',       text: 'var(--badge-yellow-text)',     border: 'var(--badge-yellow-text)33' },
+    completo:  { bg: 'var(--badge-green-bg)',        text: 'var(--badge-green-text)',      border: 'var(--badge-green-text)33' },
+    extra:     { bg: 'var(--badge-blue-bg)',         text: 'var(--badge-blue-text)',       border: 'var(--badge-blue-text)33' },
   }
 
   const summarioDia = diaSelecionado ? summaryMap.get(diaSelecionado) : null
@@ -48,105 +47,111 @@ export function Calendario() {
     <div className="p-4">
       {/* Cabeçalho */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-lg capitalize">
+        <h2 className="font-semibold text-base capitalize" style={{ color: 'var(--text-primary)' }}>
           {format(periodo.fim, 'MMMM yyyy', { locale: ptBR })}
         </h2>
-        <div className="flex gap-2 text-xs">
+        <div className="flex gap-3 text-xs">
           {[
-            { cor: 'bg-green-500', label: 'OK' },
-            { cor: 'bg-yellow-500', label: 'Incompleto' },
-            { cor: 'bg-red-500', label: 'Ausente' },
-            { cor: 'bg-blue-500', label: 'Extra' },
+            { cor: 'var(--badge-green-text)',  label: 'OK' },
+            { cor: 'var(--badge-yellow-text)', label: 'Incompleto' },
+            { cor: 'var(--badge-red-text)',    label: 'Ausente' },
+            { cor: 'var(--badge-blue-text)',   label: 'Extra' },
           ].map(({ cor, label }) => (
             <div key={label} className="flex items-center gap-1">
-              <div className={`w-2 h-2 rounded-full ${cor}`} />
-              <span className="text-slate-400">{label}</span>
+              <div className="w-2 h-2 rounded-full" style={{ background: cor }} />
+              <span style={{ color: 'var(--text-muted)' }}>{label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Grade dos dias da semana */}
+      {/* Dias da semana */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {DIAS_SEMANA.map((d) => (
-          <div key={d} className="text-center text-xs text-slate-500 py-1 font-medium">
-            {d}
-          </div>
+          <div key={d} className="text-center text-xs py-1 font-medium"
+            style={{ color: 'var(--text-faint)' }}>{d}</div>
         ))}
       </div>
 
-      {/* Grade dos dias */}
+      {/* Grade */}
       <div className="grid grid-cols-7 gap-1">
-        {/* Células vazias de offset */}
-        {Array.from({ length: primeiroOffset }, (_, i) => (
-          <div key={`offset-${i}`} />
-        ))}
+        {Array.from({ length: primeiroOffset }, (_, i) => <div key={`offset-${i}`} />)}
 
         {dias.map((dia) => {
           const isoData = format(dia, 'yyyy-MM-dd')
-          const status = statusDia(isoData, dia)
+          const status  = statusDia(isoData, dia)
           const isSelected = diaSelecionado === isoData
-          const summary = summaryMap.get(isoData)
+          const cor = corStatus[status]
 
           return (
-            <button
-              key={isoData}
+            <button key={isoData}
               onClick={() => setDiaSelecionado(isSelected ? null : isoData)}
-              className={`relative aspect-square rounded-lg text-sm font-medium transition-all
-                ${corStatus[status]}
-                ${isSelected ? 'ring-2 ring-white scale-95' : 'hover:opacity-80'}
-                ${status === 'fds' ? 'cursor-default' : 'cursor-pointer'}
-              `}
-            >
+              className="relative aspect-square rounded-xl text-sm font-medium transition-all"
+              style={{
+                background: cor.bg,
+                color: cor.text,
+                border: `1px solid ${isSelected ? 'var(--text-primary)' : cor.border}`,
+                outline: isSelected ? '2px solid var(--text-primary)' : 'none',
+                outlineOffset: '1px',
+                cursor: status === 'fds' ? 'default' : 'pointer',
+              }}>
               {format(dia, 'd')}
-              {/* Indicador de extra */}
-              {summary && (summary.hora_extra > 0) && (
-                <div className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-orange-400 rounded-full" />
-              )}
             </button>
           )
         })}
       </div>
 
-      {/* Detalhe do dia selecionado */}
+      {/* Detalhe */}
       {diaSelecionado && (
         <div className="mt-4 card relative">
-          <button
-            onClick={() => setDiaSelecionado(null)}
-            className="absolute top-3 right-3 text-slate-400 hover:text-white"
-          >
+          <button onClick={() => setDiaSelecionado(null)}
+            className="absolute top-3 right-3 transition-colors"
+            style={{ color: 'var(--text-muted)' }}>
             <X size={16} />
           </button>
 
-          <p className="font-semibold text-sm capitalize mb-3">
+          <p className="font-semibold text-sm capitalize mb-3" style={{ color: 'var(--text-primary)' }}>
             {formatDataLonga(diaSelecionado)}
           </p>
 
           {summarioDia ? (
             <div className="space-y-2">
               {summarioDia.marcacoes.map((m) => (
-                <div key={m.id} className="flex items-center justify-between bg-slate-700/50 rounded-lg px-3 py-2">
+                <div key={m.id} className="flex items-center justify-between rounded-xl px-3 py-2"
+                  style={{ background: 'var(--bg-overlay)', border: '1px solid var(--border)' }}>
                   <div>
-                    <span className="text-base font-mono font-semibold">{m.hora}</span>
-                    <span className="text-xs text-slate-400 ml-2">{labelTipo(m.tipo)}</span>
+                    <span className="text-base font-mono font-semibold"
+                      style={{ color: 'var(--text-primary)' }}>
+                      {m.hora.slice(0, 5)}
+                    </span>
+                    <span className="text-xs ml-2" style={{ color: 'var(--text-muted)' }}>
+                      {labelTipo(m.tipo)}
+                    </span>
                   </div>
                   <span className="badge-gray">{m.origem}</span>
                 </div>
               ))}
 
               {(summarioDia.banco_horas > 0 || summarioDia.hora_extra > 0) && (
-                <div className="mt-2 pt-2 border-t border-slate-700 flex gap-4 text-xs">
+                <div className="mt-2 pt-2 flex gap-4 text-xs"
+                  style={{ borderTop: '1px solid var(--border)' }}>
                   {summarioDia.banco_horas > 0 && (
-                    <span className="text-amber-400">Banco: {minutosParaLabel(summarioDia.banco_horas)}</span>
+                    <span style={{ color: 'var(--badge-yellow-text)' }}>
+                      Banco: {minutosParaLabel(summarioDia.banco_horas)}
+                    </span>
                   )}
                   {summarioDia.hora_extra > 0 && (
-                    <span className="text-red-400">Extra: {minutosParaLabel(summarioDia.hora_extra)}</span>
+                    <span style={{ color: 'var(--badge-red-text)' }}>
+                      Extra: {minutosParaLabel(summarioDia.hora_extra)}
+                    </span>
                   )}
                 </div>
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-400">Nenhuma marcação registrada</p>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              Nenhuma marcação registrada
+            </p>
           )}
         </div>
       )}
@@ -157,11 +162,11 @@ export function Calendario() {
 function labelTipo(tipo: string): string {
   const mapa: Record<string, string> = {
     entrada_manha: 'Entrada manhã',
-    saida_manha: 'Saída manhã',
+    saida_manha:   'Saída manhã',
     entrada_tarde: 'Entrada tarde',
-    saida_tarde: 'Saída tarde',
+    saida_tarde:   'Saída tarde',
     entrada_noite: 'Entrada noite',
-    saida_noite: 'Saída noite',
+    saida_noite:   'Saída noite',
   }
   return mapa[tipo] ?? tipo
 }
