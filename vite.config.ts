@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Gestor de Ponto SENAI',
         short_name: 'Ponto SENAI',
         description: 'Gerenciamento de registros de ponto',
-        theme_color: '#2563EB',
+        theme_color: '#2563eb',
         background_color: '#1A1A2E',
         display: 'standalone',
         orientation: 'portrait',
