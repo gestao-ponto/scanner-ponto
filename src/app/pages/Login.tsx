@@ -12,49 +12,59 @@ export function Login() {
     setErro('')
     try {
       await signInWithGoogle()
-    } catch (e) {
+    } catch {
       setErro('Erro ao conectar com Google. Tente novamente.')
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-900 p-6">
-      {/* Logo / Branding */}
+    <div className="min-h-screen flex flex-col items-center justify-center p-6"
+      style={{ background: 'var(--bg-base)' }}>
+
+      {/* Branding */}
       <div className="text-center mb-10">
-        <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-900">
-          <svg viewBox="0 0 24 24" fill="none" className="w-10 h-10 text-white" stroke="currentColor" strokeWidth="2">
-            <circle cx="12" cy="8" r="3" />
-            <path d="M12 2v2M12 14v8M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5"
+          style={{ background: '#2563eb' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="w-10 h-10">
+            <path d="M12 2C8 2 5 5.5 5 9c0 2.5 1.5 4.7 3.7 5.7L8 18h8l-.7-3.3C17.5 13.7 19 11.5 19 9c0-3.5-3-7-7-7z"/>
+            <path d="M9 21h6M10 18v3M14 18v3"/>
+            <circle cx="12" cy="9" r="2"/>
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-slate-100">Gestor de Ponto</h1>
-        <p className="text-slate-400 text-sm mt-1">SENAI CETEC Palmas</p>
+        <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Ponto SENAI
+        </h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          CETEC Palmas
+        </p>
       </div>
 
-      {/* Card de login */}
-      <div className="w-full max-w-sm card space-y-5">
+      {/* Card */}
+      <div className="w-full max-w-sm rounded-2xl p-6 space-y-5"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         <div>
-          <h2 className="font-semibold text-slate-100 text-lg">Entrar</h2>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Entrar
+          </h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
             Use sua conta institucional Google para acessar.
           </p>
         </div>
 
         {erro && (
-          <div className="flex items-center gap-2 text-red-400 text-sm bg-red-950 rounded-lg px-3 py-2">
+          <div className="flex items-center gap-2 text-sm rounded-xl px-3 py-2.5"
+            style={{ background: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' }}>
             <AlertCircle size={14} />
             {erro}
           </div>
         )}
 
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-800 font-semibold px-4 py-3 rounded-xl transition-all disabled:opacity-50"
-        >
+        <button onClick={handleGoogleLogin} disabled={loading}
+          className="w-full flex items-center justify-center gap-3 font-semibold px-4 py-3 rounded-xl transition-all disabled:opacity-50"
+          style={{ background: '#fff', color: '#1f2937', border: '1px solid #e5e7eb' }}>
           {loading ? (
-            <div className="w-5 h-5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
           ) : (
             <svg viewBox="0 0 24 24" className="w-5 h-5">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -66,11 +76,10 @@ export function Login() {
           {loading ? 'Conectando...' : 'Entrar com Google'}
         </button>
 
-        <p className="text-xs text-slate-500 text-center leading-relaxed">
+        <p className="text-xs text-center leading-relaxed" style={{ color: 'var(--text-faint)' }}>
           Ao entrar, você concorda com o tratamento dos seus dados conforme a{' '}
-          <strong className="text-slate-400">LGPD</strong>. Apenas dados de
-          registro de ponto serão armazenados. As imagens dos comprovantes
-          não são salvas.
+          <strong style={{ color: 'var(--text-muted)' }}>LGPD</strong>. Apenas dados de
+          registro de ponto serão armazenados. As imagens dos comprovantes não são salvas.
         </p>
       </div>
     </div>
