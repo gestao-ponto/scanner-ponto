@@ -150,3 +150,25 @@ export const useUIStore = create<UIState>((set) => ({
   setOnline: (v) => set({ isOnline: v }),
   setHasPendingSync: (v) => set({ hasPendingSync: v }),
 }))
+// Adicionar ao final de src/store/index.ts
+
+// ─── Theme state ──────────────────────────────────────────────────────────────
+
+interface ThemeState {
+  theme: 'dark' | 'light'
+  toggleTheme: () => void
+}
+
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set, get) => ({
+      theme: 'dark',
+      toggleTheme: () => {
+        const next = get().theme === 'dark' ? 'light' : 'dark'
+        set({ theme: next })
+        document.documentElement.setAttribute('data-theme', next)
+      },
+    }),
+    { name: 'ponto-theme', storage: createJSONStorage(() => localStorage) }
+  )
+)
