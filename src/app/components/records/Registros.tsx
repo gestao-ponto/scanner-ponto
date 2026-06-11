@@ -59,9 +59,9 @@ export function Registros() {
             <button key={id} onClick={() => setFiltro(id)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               style={{
-                background: filtro === id ? '#C0392B' : 'var(--bg-overlay)',
+                background: filtro === id ? '#2563eb' : 'var(--bg-overlay)',
                 color:      filtro === id ? '#fff' : 'var(--text-secondary)',
-                border:     `1px solid ${filtro === id ? '#C0392B' : 'var(--border)'}`,
+                border:     `1px solid ${filtro === id ? '#2563eb' : 'var(--border)'}`,
               }}>
               {label}
             </button>
@@ -131,8 +131,8 @@ function RecordRow({ record, confirmDelete, onDelete, hasExtra }: {
       <button onClick={onDelete}
         className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
         style={{
-          background: confirmDelete ? '#C0392B' : 'transparent',
-          border: `1px solid ${confirmDelete ? '#C0392B' : 'var(--border)'}`,
+          background: confirmDelete ? '#2563eb' : 'transparent',
+          border: `1px solid ${confirmDelete ? '#2563eb' : 'var(--border)'}`,
           color: confirmDelete ? '#fff' : 'var(--text-muted)',
         }}>
         <Trash2 size={13} />
