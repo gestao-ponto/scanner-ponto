@@ -67,6 +67,15 @@ export async function deleteRecordLocal(id: string): Promise<void> {
   const database = await getDB()
   await database.delete('work_records', id)
 }
+export async function clearAllRecordsLocal(): Promise<void> {
+  const database = await getDB()
+  const tx = database.transaction(['work_records', 'pending_sync'], 'readwrite')
+  await Promise.all([
+    tx.objectStore('work_records').clear(),
+    tx.objectStore('pending_sync').clear(),
+    tx.done,
+  ])
+}
 
 export async function upsertRecordsLocal(records: WorkRecord[]): Promise<void> {
   const database = await getDB()
