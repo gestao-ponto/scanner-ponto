@@ -9,15 +9,99 @@
   }
 
   html, body {
-    @apply bg-slate-900 text-slate-100;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
   }
 
+  /* ─── Tokens de tema ─────────────────────────────────────────────────────── */
+  :root,
+  [data-theme="dark"] {
+    --bg-base:      #080C14;
+    --bg-surface:   #111827;
+    --bg-elevated:  #0F1117;
+    --bg-overlay:   #1a2235;
+    --border:       #1e2a3a;
+    --border-soft:  #1e2230;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:   #475569;
+    --text-faint:   #334155;
+    --accent:       #C0392B;
+    --accent-hover: #a93226;
+    --accent-bg:    #1a0f0f;
+    --accent-border:#C0392B55;
+    --online-bg:    #1a2235;
+    --online-border:#2a3548;
+    --online-dot:   #4ade80;
+    --online-text:  #4ade80;
+    --nav-bg:       #0F1117;
+    --nav-border:   #1e2230;
+    --header-bg:    #0F1117;
+    --input-bg:     #111827;
+    --input-border: #1e2a3a;
+    --badge-gray-bg:#1e2a3a;
+    --badge-gray-text:#94a3b8;
+    --badge-green-bg:#0f1f0f;
+    --badge-green-text:#22c55e;
+    --badge-yellow-bg:#1f1a0f;
+    --badge-yellow-text:#f59e0b;
+    --badge-red-bg: #1a0f0f;
+    --badge-red-text:#ef4444;
+    --badge-blue-bg:#0d1f3a;
+    --badge-blue-text:#3b82f6;
+    --row-hover:    rgba(255,255,255,0.03);
+    --cal-fds:      rgba(255,255,255,0.04);
+    --cal-fds-text: #475569;
+  }
+
+  [data-theme="light"] {
+    --bg-base:      #f8fafc;
+    --bg-surface:   #ffffff;
+    --bg-elevated:  #ffffff;
+    --bg-overlay:   #f1f5f9;
+    --border:       #e5e7eb;
+    --border-soft:  #e5e7eb;
+    --text-primary: #111827;
+    --text-secondary:#374151;
+    --text-muted:   #6b7280;
+    --text-faint:   #9ca3af;
+    --accent:       #C0392B;
+    --accent-hover: #a93226;
+    --accent-bg:    #fff5f5;
+    --accent-border:#fca5a5;
+    --online-bg:    #f0fdf4;
+    --online-border:#bbf7d0;
+    --online-dot:   #16a34a;
+    --online-text:  #15803d;
+    --nav-bg:       #ffffff;
+    --nav-border:   #e5e7eb;
+    --header-bg:    #ffffff;
+    --input-bg:     #ffffff;
+    --input-border: #d1d5db;
+    --badge-gray-bg:#f1f5f9;
+    --badge-gray-text:#6b7280;
+    --badge-green-bg:#f0fdf4;
+    --badge-green-text:#15803d;
+    --badge-yellow-bg:#fffbeb;
+    --badge-yellow-text:#d97706;
+    --badge-red-bg: #fff5f5;
+    --badge-red-text:#dc2626;
+    --badge-blue-bg:#eff6ff;
+    --badge-blue-text:#2563eb;
+    --row-hover:    rgba(0,0,0,0.02);
+    --cal-fds:      rgba(0,0,0,0.03);
+    --cal-fds-text: #9ca3af;
+  }
+
+  html, body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+  }
+
   .scan-line {
     animation: scanline 2s linear infinite;
-    background: linear-gradient(to bottom, transparent, #E31E24, transparent);
+    background: linear-gradient(to bottom, transparent, #C0392B, transparent);
     height: 3px;
     position: absolute;
     left: 0;
@@ -29,11 +113,11 @@
     100% { top: 90%; }
   }
 
-  .scan-corner { position: absolute; width: 24px; height: 24px; border-color: #E31E24; border-style: solid; }
+  .scan-corner { position: absolute; width: 24px; height: 24px; border-color: #C0392B; border-style: solid; }
   .scan-corner-tl { top: 0; left: 0; border-width: 3px 0 0 3px; }
   .scan-corner-tr { top: 0; right: 0; border-width: 3px 3px 0 0; }
   .scan-corner-bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
-  .scan-corner-br { bottom: 0; right: 0; border-width: 0 3px 3px 0; }
+  .scan-corner-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
 
   @keyframes pulse-green {
     0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
@@ -44,24 +128,44 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold
-           px-4 py-2.5 rounded-xl transition-all duration-150 select-none
+    @apply font-semibold px-4 py-2.5 rounded-xl transition-all duration-150 select-none
            disabled:opacity-50 disabled:cursor-not-allowed;
+    background-color: var(--accent);
+    color: #fff;
   }
+  .btn-primary:hover:not(:disabled) { background-color: var(--accent-hover); }
+
   .btn-secondary {
-    @apply bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-slate-100 font-medium
-           px-4 py-2.5 rounded-xl transition-all duration-150 select-none;
+    @apply font-medium px-4 py-2.5 rounded-xl transition-all duration-150 select-none;
+    background-color: var(--bg-overlay);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
   }
-  .card { @apply bg-slate-800 border border-slate-700 rounded-2xl p-4; }
+  .btn-secondary:hover { background-color: var(--border); }
+
+  .card {
+    @apply rounded-2xl p-4;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border);
+  }
+
   .input {
-    @apply bg-slate-700 border border-slate-600 text-slate-100 rounded-xl px-3 py-2.5
-           focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent
-           placeholder:text-slate-400 w-full;
+    @apply rounded-xl px-3 py-2.5 w-full transition-all;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-primary);
   }
+  .input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--accent);
+    border-color: transparent;
+  }
+  .input::placeholder { color: var(--text-faint); }
+
   .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
-  .badge-green { @apply badge bg-green-900 text-green-300; }
-  .badge-yellow { @apply badge bg-yellow-900 text-yellow-300; }
-  .badge-red { @apply badge bg-red-900 text-red-300; }
-  .badge-blue { @apply badge bg-blue-900 text-blue-300; }
-  .badge-gray { @apply badge bg-slate-700 text-slate-300; }
+  .badge-green  { @apply badge; background-color: var(--badge-green-bg);  color: var(--badge-green-text); }
+  .badge-yellow { @apply badge; background-color: var(--badge-yellow-bg); color: var(--badge-yellow-text); }
+  .badge-red    { @apply badge; background-color: var(--badge-red-bg);    color: var(--badge-red-text); }
+  .badge-blue   { @apply badge; background-color: var(--badge-blue-bg);   color: var(--badge-blue-text); }
+  .badge-gray   { @apply badge; background-color: var(--badge-gray-bg);   color: var(--badge-gray-text); }
 }
