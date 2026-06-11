@@ -78,7 +78,7 @@ export function AppLayout() {
 
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white"
-            style={{ background: '#dc2626' }}>
+            style={{ background: '#2563eb' }}>
             <FingerprintIcon size={15} />
           </div>
           <h1 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
@@ -118,8 +118,8 @@ export function AppLayout() {
           <button onClick={() => setTab('config')}
             className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors"
             style={{
-              background: tab === 'config' ? '#dc2626' : 'var(--bg-overlay)',
-              border: `1px solid ${tab === 'config' ? '#dc2626' : 'var(--border)'}`,
+              background: tab === 'config' ? '#2563eb' : 'var(--bg-overlay)',
+              border: `1px solid ${tab === 'config' ? '#2563eb' : 'var(--border)'}`,
             }}>
             <Settings size={14} style={{ color: tab === 'config' ? '#fff' : 'var(--text-muted)' }} />
           </button>
@@ -147,14 +147,14 @@ export function AppLayout() {
             return (
               <button key={id} onClick={() => setTab(id as Tab)}
                 className="flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors relative">
-                <Icon size={20} style={{ color: active ? '#dc2626' : 'var(--text-faint)' }} />
+                <Icon size={20} style={{ color: active ? '#2563eb' : 'var(--text-faint)' }} />
                 <span className="text-[10px] font-medium"
-                  style={{ color: active ? '#dc2626' : 'var(--text-faint)' }}>
+                  style={{ color: active ? '#2563eb' : 'var(--text-faint)' }}>
                   {label}
                 </span>
                 {active && (
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ background: '#dc2626' }} />
+                    style={{ background: '#2563eb' }} />
                 )}
               </button>
             )
