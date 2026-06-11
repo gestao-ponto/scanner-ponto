@@ -4,7 +4,6 @@ import { useAuth } from '@/features/auth/useAuth'
 import { useAuthStore } from '@/store'
 import { supabase } from '@/services/supabase/client'
 import { syncWorkRecords, processSyncQueue } from '@/features/work-records/syncService'
-import { clearAllRecordsLocal } from '@/services/supabase/localDb'
 
 export function Configuracoes() {
   const { signOut, profile } = useAuth()
@@ -29,7 +28,7 @@ export function Configuracoes() {
       } else if (failed > 0) {
         setSyncResult(`Falha ao sincronizar ${failed} registro${failed !== 1 ? 's' : ''}.`)
       } else {
-        setSyncResult('Registros já estavam sincronizados.')
+        setSyncResult('Tudo já estava sincronizado.')
       }
     } catch {
       setSyncResult('Erro ao tentar sincronizar. Tente novamente.')
@@ -59,7 +58,6 @@ export function Configuracoes() {
     try {
       await supabase.from('work_records').delete().eq('user_id', userId)
       await supabase.from('overtime_records').delete().eq('user_id', userId)
-      await clearAllRecordsLocal()
       setMsg('Histórico excluído com sucesso.')
       setConfirmDelete(false)
     } finally {
@@ -155,7 +153,7 @@ export function Configuracoes() {
             disabled={loading}
             className={`w-full flex items-center justify-center gap-2 text-sm px-4 py-2.5 rounded-xl transition-colors
               ${confirmDelete
-                ? 'bg-red-600 text-white'
+                ? 'bg-blue-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
           >
             <Trash2 size={14} />
