@@ -38,7 +38,7 @@ export function Scanner() {
             onClick={() => setTab(id as Tab)}
             className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium border-b-2 transition-colors
               ${tab === id
-                ? 'border-red-500 text-red-400'
+                ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
           >
@@ -309,11 +309,11 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
             <span className="text-sm font-medium text-slate-200">
               Processando {progresso.atual} de {progresso.total}
             </span>
-            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
           <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-red-500 rounded-full transition-all duration-300"
+              className="h-full bg-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${(progresso.atual / progresso.total) * 100}%` }}
             />
           </div>
