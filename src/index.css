@@ -27,10 +27,10 @@
     --text-secondary:     #cbd5e1;
     --text-muted:         #94a3b8;
     --text-faint:         #64748b;
-    --accent:             #dc2626;
-    --accent-hover:       #b91c1c;
-    --accent-bg:          #450a0a;
-    --accent-border:      #dc262655;
+    --accent:             #2563eb;
+    --accent-hover:       #1d4ed8;
+    --accent-bg:          #0a1428;
+    --accent-border:      #2563eb55;
     --online-bg:          #14532d22;
     --online-border:      #16a34a44;
     --online-dot:         #4ade80;
@@ -67,9 +67,9 @@
     --text-secondary:     #334155;
     --text-muted:         #64748b;
     --text-faint:         #94a3b8;
-    --accent:             #dc2626;
-    --accent-hover:       #b91c1c;
-    --accent-bg:          #fef2f2;
+    --accent:             #2563eb;
+    --accent-hover:       #1d4ed8;
+    --accent-bg:          #eff6ff;
     --accent-border:      #fca5a5;
     --online-bg:          #f0fdf4;
     --online-border:      #bbf7d0;
@@ -102,7 +102,7 @@
 
   .scan-line {
     animation: scanline 2s linear infinite;
-    background: linear-gradient(to bottom, transparent, #dc2626, transparent);
+    background: linear-gradient(to bottom, transparent, #2563eb, transparent);
     height: 3px;
     position: absolute;
     left: 0;
@@ -114,7 +114,7 @@
     100% { top: 90%; }
   }
 
-  .scan-corner { position: absolute; width: 24px; height: 24px; border-color: #dc2626; border-style: solid; }
+  .scan-corner { position: absolute; width: 24px; height: 24px; border-color: #2563eb; border-style: solid; }
   .scan-corner-tl { top: 0; left: 0; border-width: 3px 0 0 3px; }
   .scan-corner-tr { top: 0; right: 0; border-width: 3px 3px 0 0; }
   .scan-corner-bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
