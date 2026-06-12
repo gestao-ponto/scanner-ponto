@@ -48,6 +48,14 @@ export function SetupPerfil() {
 
       if (error) throw error
 
+      await supabase.from('consents').insert({
+        user_id: userId,
+        tipo: 'lgpd_aceite',
+        aceito: true,
+        ip_address: null,
+        user_agent: navigator.userAgent,
+      })
+
       setProfile(data as import('@/types').Profile)
       await cacheProfile(data)
     } catch (e) {
