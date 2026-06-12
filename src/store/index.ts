@@ -140,20 +140,21 @@ export const useOvertimeModal = create<OvertimeModalState>((set) => ({
 interface UIState {
   isOnline: boolean
   hasPendingSync: boolean
-  activeTab: string
+  navigateTo: string | null
   setOnline: (v: boolean) => void
   setHasPendingSync: (v: boolean) => void
-  setActiveTab: (t: string) => void
+  setNavigateTo: (t: string | null) => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
   isOnline: navigator.onLine,
   hasPendingSync: false,
-  activeTab: 'dashboard',
+  navigateTo: null,
   setOnline: (v) => set({ isOnline: v }),
   setHasPendingSync: (v) => set({ hasPendingSync: v }),
-  setActiveTab: (t) => set({ activeTab: t }),
+  setNavigateTo: (t) => set({ navigateTo: t }),
 }))
+
 // ─── Theme state ──────────────────────────────────────────────────────────────
 
 interface ThemeState {

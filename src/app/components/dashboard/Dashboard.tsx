@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Clock, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
-import { useAuthStore, useUIStore, useThemeStore } from '@/store'
+import { useAuthStore, useUIStore } from '@/store'
 import { calcularTotaisPeriodo } from '@/features/work-records/calculations'
 import { minutosParaLabel, periodoReadyToClose, getDiasUteisNoPeriodo } from '@/utils/dateUtils'
 import { ScanLine, FileDown, CalendarDays, List } from 'lucide-react'
@@ -9,12 +9,12 @@ import { ScanLine, FileDown, CalendarDays, List } from 'lucide-react'
 export function Dashboard() {
   const { summaries, periodo, diasPendentes } = useRecords()
   const { profile } = useAuthStore()
-  const { setActiveTab } = useUIStore()
+  const { setNavigateTo } = useUIStore()
 
-  const totais       = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
-  const diasUteis    = useMemo(() => getDiasUteisNoPeriodo(periodo).length, [periodo])
+  const totais        = useMemo(() => calcularTotaisPeriodo(summaries), [summaries])
+  const diasUteis     = useMemo(() => getDiasUteisNoPeriodo(periodo).length, [periodo])
   const diasCompletos = summaries.filter((s) => s.status === 'completo').length
-  const progresso    = diasUteis > 0 ? (diasCompletos / diasUteis) * 100 : 0
+  const progresso     = diasUteis > 0 ? (diasCompletos / diasUteis) * 100 : 0
   const prontoParaFechar = periodoReadyToClose(periodo)
 
   const primeiroNome = profile?.nome?.split(' ')[0] ?? 'Colaborador'
@@ -94,10 +94,10 @@ export function Dashboard() {
       <div>
         <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Ações rápidas</p>
         <div className="grid grid-cols-2 gap-2.5">
-          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}    label="Escanear comprovante" accent onClick={() => setActiveTab('scanner')} />
-          <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}     label="Exportar cartão"      onClick={() => setActiveTab('exportar')} />
-          <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />} label="Ver calendário"       onClick={() => setActiveTab('calendario')} />
-          <QuickAction icon={<List size={16} color="var(--text-muted)" />}         label="Registros"            onClick={() => setActiveTab('registros')} />
+          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}                    label="Escanear comprovante" accent onClick={() => setNavigateTo('scanner')} />
+          <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}          label="Exportar cartão"      onClick={() => setNavigateTo('exportar')} />
+          <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />}      label="Ver calendário"       onClick={() => setNavigateTo('calendario')} />
+          <QuickAction icon={<List size={16} color="var(--text-muted)" />}              label="Registros"            onClick={() => setNavigateTo('registros')} />
         </div>
       </div>
 

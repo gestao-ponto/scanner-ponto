@@ -46,19 +46,17 @@ function FingerprintIcon({ size = 16 }: { size?: number }) {
 }
 
 export function AppLayout() {
-  const [tab, setTabLocal] = useState<Tab>('dashboard')
-  const { isOnline, hasPendingSync, setOnline, activeTab, setActiveTab } = useUIStore()
+  const [tab, setTab] = useState<Tab>('dashboard')
+  const { isOnline, hasPendingSync, setOnline, navigateTo, setNavigateTo } = useUIStore()
   const { theme, toggleTheme } = useThemeStore()
 
-  const setTab = (t: Tab) => {
-    setTabLocal(t)
-    setActiveTab(t)
-  }
-
-  // Reagir a mudanças de tab vindas do Dashboard (ações rápidas)
+  // Navegação one-shot vinda do Dashboard (ações rápidas)
   useEffect(() => {
-    if (activeTab !== tab) setTabLocal(activeTab as Tab)
-  }, [activeTab])
+    if (navigateTo && navigateTo !== tab) {
+      setTab(navigateTo as Tab)
+      setNavigateTo(null)
+    }
+  }, [navigateTo])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
