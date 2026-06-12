@@ -24,16 +24,9 @@ export function Login() {
 
       {/* Branding */}
       <div className="text-center mb-10">
-        <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: '#2563eb' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="w-10 h-10">
-            <path d="M12 2C8 2 5 5.5 5 9c0 2.5 1.5 4.7 3.7 5.7L8 18h8l-.7-3.3C17.5 13.7 19 11.5 19 9c0-3.5-3-7-7-7z"/>
-            <path d="M9 21h6M10 18v3M14 18v3"/>
-            <circle cx="12" cy="9" r="2"/>
-          </svg>
-        </div>
+        <img src={`${import.meta.env.BASE_URL}icons/icon-512.png`} alt="Ícone do app" className="w-20 h-20 rounded-3xl mx-auto mb-5" />
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Meu de Ponto 
+          Meu Ponto
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
           Controle pessoal de expediente
