@@ -33,10 +33,10 @@ export function Login() {
           </svg>
         </div>
         <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Ponto SENAI
+          Meu de Ponto 
         </h1>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-          CETEC Palmas
+          Controle pessoal de expediente
         </p>
       </div>
 
@@ -48,7 +48,7 @@ export function Login() {
             Entrar
           </h2>
           <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-            Use sua conta institucional Google para acessar.
+            Use sua conta para acessar.
           </p>
         </div>
 
