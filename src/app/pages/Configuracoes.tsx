@@ -1,14 +1,69 @@
 import { useState } from 'react'
-import { LogOut, User, Shield, Trash2, Download, RefreshCw } from 'lucide-react'
+import { LogOut, User, Shield, Trash2, Download, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useAuth } from '@/features/auth/useAuth'
 import { useAuthStore } from '@/store'
 import { supabase } from '@/services/supabase/client'
 import { syncWorkRecords, processSyncQueue } from '@/features/work-records/syncService'
 
+function ModalConfirmacao({
+  titulo,
+  mensagem,
+  onConfirmar,
+  onCancelar,
+  loading,
+}: {
+  titulo: string
+  mensagem: string
+  onConfirmar: () => void
+  onCancelar: () => void
+  loading: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.6)' }}>
+      <div className="w-full max-w-sm rounded-2xl p-5 space-y-4"
+        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'var(--badge-red-bg)' }}>
+            <AlertTriangle size={18} style={{ color: 'var(--badge-red-text)' }} />
+          </div>
+          <h3 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
+            {titulo}
+          </h3>
+        </div>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          {mensagem}
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={onCancelar}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors"
+            style={{ background: 'var(--bg-overlay)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirmar}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            style={{ background: '#dc2626', color: '#fff' }}>
+            {loading && (
+              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            )}
+            Excluir
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function Configuracoes() {
   const { signOut, profile } = useAuth()
   const { userId } = useAuthStore()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [modalConta, setModalConta] = useState(false)
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState('')
   const [syncing, setSyncing] = useState(false)
@@ -28,7 +83,7 @@ export function Configuracoes() {
       } else if (failed > 0) {
         setSyncResult(`Falha ao sincronizar ${failed} registro${failed !== 1 ? 's' : ''}.`)
       } else {
-        setSyncResult('Tudo já estava sincronizado.')
+        setSyncResult('Todos os registros já estavam sincronizados.')
       }
     } catch {
       setSyncResult('Erro ao tentar sincronizar. Tente novamente.')
@@ -67,7 +122,6 @@ export function Configuracoes() {
 
   const handleExcluirConta = async () => {
     if (!userId) return
-    if (!window.confirm('Excluir sua conta permanentemente? Esta ação não pode ser desfeita.')) return
     setLoading(true)
     try {
       await supabase.from('profiles').delete().eq('user_id', userId)
@@ -76,11 +130,22 @@ export function Configuracoes() {
       await signOut()
     } finally {
       setLoading(false)
+      setModalConta(false)
     }
   }
 
   return (
     <div className="p-4 space-y-4">
+      {modalConta && (
+        <ModalConfirmacao
+          titulo="Excluir conta permanentemente"
+          mensagem="Todos os seus dados serão removidos e esta ação não pode ser desfeita."
+          onConfirmar={handleExcluirConta}
+          onCancelar={() => setModalConta(false)}
+          loading={loading}
+        />
+      )}
+
       {/* Perfil */}
       {profile && (
         <div className="card">
@@ -135,7 +200,7 @@ export function Configuracoes() {
           <h3 className="font-semibold text-sm">Seus Dados (LGPD)</h3>
         </div>
         <p className="text-xs text-slate-400 mb-3 leading-relaxed">
-          Armazenamos apenas: data, hora e tipo de marcação, justificativas de horas extras.
+          Armazenamos apenas: data, hora, tipo de marcação e justificativas de horas extras.
           Imagens dos comprovantes <strong className="text-slate-300">nunca são salvas</strong>.
         </p>
 
@@ -176,7 +241,7 @@ export function Configuracoes() {
           Sair
         </button>
         <button
-          onClick={handleExcluirConta}
+          onClick={() => setModalConta(true)}
           disabled={loading}
           className="w-full text-xs text-red-500 hover:text-red-400 py-2 transition-colors"
         >
