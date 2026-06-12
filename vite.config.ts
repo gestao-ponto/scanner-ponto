@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'Gestor de Ponto SENAI',
-        short_name: 'Ponto SENAI',
+        name: 'Meu Ponto',
+        short_name: 'Meu Ponto',
         description: 'Gerenciamento de registros de ponto',
         theme_color: '#1A1A2E',
         background_color: '#1A1A2E',
