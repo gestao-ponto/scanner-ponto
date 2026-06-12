@@ -26,22 +26,24 @@ export default defineConfig({
         ],
       },
       workbox: {
-  skipWaiting: true,
-  clientsClaim: true,
-  globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'supabase-cache',
-        expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
-        networkTimeoutSeconds: 10,
+        skipWaiting: true,
+        clientsClaim: true,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
       },
-    },
+    }),
   ],
-},
-            resolve: {
+  resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },
 })
