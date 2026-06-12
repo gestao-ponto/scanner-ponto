@@ -1,20 +1,18 @@
 import { useEffect } from 'react'
 import { supabase } from '@/services/supabase/client'
 import { useAuthStore } from '@/store'
-import { cacheProfile, getCachedProfile } from '@/services/supabase/localDb'
+import { cacheProfile, getCachedProfile, clearAllLocalData } from '@/services/supabase/localDb'
 
 export function useAuth() {
   const { userId, isAuthenticated, isLoading, profile, setUserId, setProfile, setLoading, logout } =
     useAuthStore()
 
   useEffect(() => {
-    // Verificar sessão existente
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id)
         await loadProfile(session.user.id)
       } else {
-        // Tentar carregar profile cacheado offline
         const cached = await getCachedProfile()
         if (cached) {
           setProfile(cached as import('@/types').Profile)
@@ -23,7 +21,6 @@ export function useAuth() {
       setLoading(false)
     })
 
-    // Ouvir mudanças de sessão
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
         setUserId(session.user.id)
@@ -60,6 +57,7 @@ export function useAuth() {
   }
 
   async function signOut() {
+    await clearAllLocalData()
     await supabase.auth.signOut()
     logout()
   }

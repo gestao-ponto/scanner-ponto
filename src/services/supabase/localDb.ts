@@ -127,3 +127,16 @@ export async function getCachedProfile(): Promise<unknown | null> {
   const all = await database.getAll('profile')
   return all[0] ?? null
 }
+// ─── Clear all (logout) ───────────────────────────────────────────────────────
+
+export async function clearAllLocalData(): Promise<void> {
+  const database = await getDB()
+  const tx = database.transaction(['work_records', 'pending_sync', 'profile'], 'readwrite')
+  await Promise.all([
+    tx.objectStore('work_records').clear(),
+    tx.objectStore('pending_sync').clear(),
+    tx.objectStore('profile').clear(),
+    tx.done,
+  ])
+  db = null // força reabertura limpa na próxima sessão
+}
