@@ -83,6 +83,23 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
 
 // ─── Chamada à Edge Function ──────────────────────────────────────────────────
 
+// Extrai a mensagem de erro real do corpo da resposta HTTP da Edge Function.
+// O client do Supabase só expõe um `error.message` genérico
+// ("Edge Function returned a non-2xx status code"); o motivo real
+// (ex.: rate limit, falha na Vision API) vem no corpo JSON em `error.context`.
+async function extrairMensagemErro(error: unknown): Promise<string> {
+  const ctx = (error as { context?: Response })?.context
+  if (ctx && typeof ctx.json === 'function') {
+    try {
+      const body = await ctx.json()
+      if (body?.error) return body.error as string
+    } catch {
+      // corpo não é JSON válido — ignora e usa fallback
+    }
+  }
+  return (error as Error)?.message ?? 'Erro desconhecido na Edge Function.'
+}
+
 async function chamarVisionAPI(base64: string): Promise<string> {
   const conteudo = base64.includes(',') ? base64.split(',')[1] : base64
 
@@ -90,7 +107,7 @@ async function chamarVisionAPI(base64: string): Promise<string> {
     body: { image: conteudo },
   })
 
-  if (error) throw new Error(`Edge Function error: ${error.message}`)
+  if (error) throw new Error(await extrairMensagemErro(error))
   if (data?.error) throw new Error(`Vision API error: ${data.error}`)
 
   return (data?.text as string) ?? ''
