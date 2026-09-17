@@ -14,6 +14,7 @@ export function OvertimeModal() {
     extraMinutos,
     intrajornada,
     closeModal,
+    ignorarDia,
   } = useOvertimeModal()
   const { userId } = useAuthStore()
 
@@ -54,8 +55,14 @@ export function OvertimeModal() {
   }
 
   const handleClose = () => {
-    // Só permite fechar se não houver justificativa pendente com extra detectado
     closeModal()
+    setJustificativa('')
+    setErro('')
+  }
+
+  const handleIgnorar = () => {
+    if (!data) return
+    ignorarDia(data)
     setJustificativa('')
     setErro('')
   }
@@ -133,19 +140,27 @@ export function OvertimeModal() {
         </div>
 
         {/* Ações */}
-        <div className="flex gap-2">
-          <button onClick={handleClose} className="btn-secondary flex-1">
-            Cancelar
-          </button>
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-2">
+            <button onClick={handleClose} className="btn-secondary flex-1">
+              Cancelar
+            </button>
+            <button
+              onClick={handleSalvar}
+              disabled={loading || !justificativa.trim()}
+              className="btn-primary flex-1 flex items-center justify-center gap-2"
+            >
+              {loading && (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              Salvar
+            </button>
+          </div>
           <button
-            onClick={handleSalvar}
-            disabled={loading || !justificativa.trim()}
-            className="btn-primary flex-1 flex items-center justify-center gap-2"
+            onClick={handleIgnorar}
+            className="text-xs text-slate-400 hover:text-slate-200 py-1"
           >
-            {loading && (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            )}
-            Salvar
+            Ignorar hoje (já autorizado via planilha)
           </button>
         </div>
       </div>

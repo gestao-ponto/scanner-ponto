@@ -103,6 +103,7 @@ interface OvertimeModalState {
   bancoMinutos: number
   extraMinutos: number
   intrajornada: boolean
+  diasIgnorados: string[]
   openModal: (params: {
     data: string
     inicioHora: string
@@ -112,6 +113,7 @@ interface OvertimeModalState {
     intrajornada: boolean
   }) => void
   closeModal: () => void
+  ignorarDia: (data: string) => void
 }
 
 export const useOvertimeModal = create<OvertimeModalState>((set) => ({
@@ -122,6 +124,7 @@ export const useOvertimeModal = create<OvertimeModalState>((set) => ({
   bancoMinutos: 0,
   extraMinutos: 0,
   intrajornada: false,
+  diasIgnorados: [],
   openModal: (params) => set({ isOpen: true, ...params }),
   closeModal: () =>
     set({
@@ -133,6 +136,19 @@ export const useOvertimeModal = create<OvertimeModalState>((set) => ({
       extraMinutos: 0,
       intrajornada: false,
     }),
+  ignorarDia: (data) =>
+    set((state) => ({
+      diasIgnorados: state.diasIgnorados.includes(data)
+        ? state.diasIgnorados
+        : [...state.diasIgnorados, data],
+      isOpen: false,
+      data: null,
+      inicioHora: null,
+      fimHora: null,
+      bancoMinutos: 0,
+      extraMinutos: 0,
+      intrajornada: false,
+    })),
 }))
 
 // ─── UI state ─────────────────────────────────────────────────────────────────

@@ -48,18 +48,34 @@ export function SetupPerfil() {
 
       if (error) throw error
 
-      await supabase.from('consents').insert({
+      const { error: consentError } = await supabase.from('consents').insert({
         user_id: userId,
         tipo: 'lgpd_aceite',
         aceito: true,
         ip_address: null,
         user_agent: navigator.userAgent,
       })
+      if (consentError) {
+        console.error('[SetupPerfil] Falha ao registrar consentimento LGPD:', consentError)
+      }
 
       setProfile(data as import('@/types').Profile)
       await cacheProfile(data)
     } catch (e) {
-      setErro('Erro ao salvar perfil. Tente novamente.')
+      const supabaseError = e as { code?: string; message?: string }
+      console.error('[SetupPerfil] Erro ao salvar perfil:', supabaseError)
+
+      if (supabaseError.code === '42501') {
+        setErro('Sem permissão para salvar (RLS). Verifique se está autenticado corretamente.')
+      } else if (supabaseError.code === '23502') {
+        setErro('Um campo obrigatório não foi enviado. Verifique os dados.')
+      } else if (supabaseError.code === '23505') {
+        setErro('Já existe um perfil cadastrado para este usuário.')
+      } else if (supabaseError.code === '42P01') {
+        setErro('Tabela não encontrada no banco. Contate o administrador.')
+      } else {
+        setErro(supabaseError.message || 'Erro ao salvar perfil. Tente novamente.')
+      }
     } finally {
       setLoading(false)
     }

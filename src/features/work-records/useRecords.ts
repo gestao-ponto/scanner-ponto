@@ -19,7 +19,7 @@ export function useRecords() {
     setLoading,
     setLastSync,
   } = useRecordsStore()
-  const { openModal } = useOvertimeModal()
+  const { openModal, diasIgnorados } = useOvertimeModal()
 
   // Carregar registros do período atual
   const carregarRegistros = useCallback(async () => {
@@ -62,7 +62,7 @@ export function useRecords() {
       const recordsDia = agrupado.get(data) ?? []
       const resumo = calcularResumoDiario(recordsDia)
 
-      if (precisaAutorizacao(resumo)) {
+      if (precisaAutorizacao(resumo) && !diasIgnorados.includes(data)) {
         const horario = calcularHorarioAutorizacao(recordsDia)
         if (horario) {
           openModal({
@@ -78,7 +78,7 @@ export function useRecords() {
 
       return record
     },
-    [userId, addRecord, openModal]
+    [userId, addRecord, openModal, diasIgnorados]
   )
 
   // Excluir marcação

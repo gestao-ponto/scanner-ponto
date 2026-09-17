@@ -67,8 +67,15 @@ function classificarPorHorario(hora: string, posicao: number): TipoMarcacao {
 }
 
 export function atribuirTipos(marcacoes: { hora: string }[]): TipoMarcacao[] {
-  const ordenadas = [...marcacoes].sort((a, b) => a.hora.localeCompare(b.hora))
-  return ordenadas.map((m, i) => classificarPorHorario(m.hora, i))
+  const comIndice = marcacoes.map((m, indiceOriginal) => ({ ...m, indiceOriginal }))
+  const ordenadas = comIndice.sort((a, b) => a.hora.localeCompare(b.hora))
+
+  const tiposPorIndiceOriginal: TipoMarcacao[] = new Array(marcacoes.length)
+  ordenadas.forEach((m, i) => {
+    tiposPorIndiceOriginal[m.indiceOriginal] = classificarPorHorario(m.hora, i)
+  })
+
+  return tiposPorIndiceOriginal
 }
 
 // ─── Verificar se marcação está dentro da tolerância de um ponto ──────────────
