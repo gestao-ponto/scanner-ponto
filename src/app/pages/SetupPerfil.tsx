@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { supabase } from '@/services/supabase/client'
 import { useAuthStore } from '@/store'
 import { cacheProfile } from '@/services/supabase/localDb'
+import { useAuth } from '@/features/auth/useAuth'
 import { UserCircle } from 'lucide-react'
 
 export function SetupPerfil() {
   const { userId, setProfile } = useAuthStore()
+  const { signOut } = useAuth()
   const [form, setForm] = useState({
     nome: '',
     matricula: '',
@@ -65,7 +67,10 @@ export function SetupPerfil() {
       const supabaseError = e as { code?: string; message?: string }
       console.error('[SetupPerfil] Erro ao salvar perfil:', supabaseError)
 
-      if (supabaseError.code === '42501') {
+      if (supabaseError.code === '23503') {
+        setErro('Sua sessão expirou. Você será desconectado — entre novamente para continuar.')
+        await signOut()
+      } else if (supabaseError.code === '42501') {
         setErro('Sem permissão para salvar (RLS). Verifique se está autenticado corretamente.')
       } else if (supabaseError.code === '23502') {
         setErro('Um campo obrigatório não foi enviado. Verifique os dados.')

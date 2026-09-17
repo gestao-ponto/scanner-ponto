@@ -10,6 +10,13 @@ export function useAuth() {
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
+        const valido = await sessaoValidaNoServidor()
+        if (!valido) {
+          console.warn('[useAuth] Sessão local não corresponde a um usuário válido no servidor. Encerrando sessão.')
+          await signOut()
+          setLoading(false)
+          return
+        }
         setUserId(session.user.id)
         await loadProfile(session.user.id)
       } else {
@@ -32,6 +39,15 @@ export function useAuth() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Confirma com o servidor (não apenas o token em cache local) que a sessão
+  // ainda corresponde a um usuário existente. Evita erros de foreign key ao
+  // tentar salvar dados com um user_id de uma sessão obsoleta/revogada.
+  async function sessaoValidaNoServidor(): Promise<boolean> {
+    const { data, error } = await supabase.auth.getUser()
+    return !error && !!data.user
+  }
+
 
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
