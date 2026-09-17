@@ -6,6 +6,7 @@ import { gerarCartaoPonto } from '@/services/export/exportDocx'
 import { gerarAutorizacaoHorasExtras } from '@/services/export/exportXlsx'
 import { getHorasExtras } from '@/features/work-records/recordsService'
 import { periodoReadyToClose } from '@/utils/dateUtils'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import { format } from 'date-fns'
 
 export function Exportacao() {
@@ -31,7 +32,8 @@ export function Exportacao() {
       await gerarCartaoPonto(records, profile, periodo)
       setStatusDocx('ok')
     } catch (e) {
-      setStatusDocx('error'); setErroMsg(String(e))
+      console.error('[Exportacao] Erro ao gerar cartão de ponto:', e)
+      setStatusDocx('error'); setErroMsg(await mensagemErroAmigavel(e))
     } finally { setLoadingDocx(false) }
   }
 
@@ -50,7 +52,8 @@ export function Exportacao() {
       await gerarAutorizacaoHorasExtras(registros, profile, periodo.label)
       setStatusXlsx('ok')
     } catch (e) {
-      setStatusXlsx('error'); setErroMsg(String(e))
+      console.error('[Exportacao] Erro ao gerar autorização de horas extras:', e)
+      setStatusXlsx('error'); setErroMsg(await mensagemErroAmigavel(e))
     } finally { setLoadingXlsx(false) }
   }
 

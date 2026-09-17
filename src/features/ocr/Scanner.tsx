@@ -3,6 +3,7 @@ import { Camera, Upload, Pencil, CheckCircle, AlertCircle, ImagePlus } from 'luc
 import { useRecords } from '@/features/work-records/useRecords'
 import { processarOCR } from '@/features/ocr/ocrEngine'
 import { parseDataBR } from '@/utils/dateUtils'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 
 // ─── Debug logger (silencioso em produção) ────────────────────────────────────
 const DEBUG = import.meta.env.DEV
@@ -119,8 +120,8 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
       dbg('Exceção no OCR:', err)
       atualizarItem(item.id, {
         status: 'falha',
-        motivoPendencia: 'Erro interno no OCR.',
-        resultado: 'Erro no processamento.',
+        motivoPendencia: await mensagemErroAmigavel(err),
+        resultado: 'Não foi possível processar.',
       })
       return
     }
@@ -142,7 +143,7 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
         atualizarItem(item.id, {
           status: 'falha',
           resultado: `${ocr.data} às ${ocr.hora}`,
-          motivoPendencia: 'Falha ao salvar no banco.',
+          motivoPendencia: await mensagemErroAmigavel(err),
         })
       }
       return

@@ -1,5 +1,6 @@
 import { supabase } from '@/services/supabase/client'
 import { normalizarData, normalizarHora } from '@/features/ocr/dateTimeParser'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import type { OcrResult } from '@/types'
 
 export { normalizarData, normalizarHora } from '@/features/ocr/dateTimeParser'
@@ -83,23 +84,6 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
 
 // ─── Chamada à Edge Function ──────────────────────────────────────────────────
 
-// Extrai a mensagem de erro real do corpo da resposta HTTP da Edge Function.
-// O client do Supabase só expõe um `error.message` genérico
-// ("Edge Function returned a non-2xx status code"); o motivo real
-// (ex.: rate limit, falha na Vision API) vem no corpo JSON em `error.context`.
-async function extrairMensagemErro(error: unknown): Promise<string> {
-  const ctx = (error as { context?: Response })?.context
-  if (ctx && typeof ctx.json === 'function') {
-    try {
-      const body = await ctx.json()
-      if (body?.error) return body.error as string
-    } catch {
-      // corpo não é JSON válido — ignora e usa fallback
-    }
-  }
-  return (error as Error)?.message ?? 'Erro desconhecido na Edge Function.'
-}
-
 async function chamarVisionAPI(base64: string): Promise<string> {
   const conteudo = base64.includes(',') ? base64.split(',')[1] : base64
 
@@ -107,48 +91,41 @@ async function chamarVisionAPI(base64: string): Promise<string> {
     body: { image: conteudo },
   })
 
-  if (error) throw new Error(await extrairMensagemErro(error))
-  if (data?.error) throw new Error(`Vision API error: ${data.error}`)
+  if (error) throw new Error(await mensagemErroAmigavel(error))
+  if (data?.error) throw new Error(data.error as string)
 
   return (data?.text as string) ?? ''
 }
 
 // ─── Processamento OCR principal ──────────────────────────────────────────────
 
+// Erros lançados aqui indicam falha na REQUISIÇÃO (rede, Edge Function,
+// rate limit) — o item não pôde nem ser processado. É diferente de um OCR
+// que rodou mas não achou data/hora na imagem (isso vira sucesso: false
+// no retorno normal, não uma exceção).
 export async function processarOCR(imageSource: string | File | Blob): Promise<OcrResult> {
-  try {
-    dbg('Iniciando pré-processamento')
-    const preprocessed = await preprocessImage(imageSource)
-    dbg('Pré-processamento concluído, enviando para Vision API')
+  dbg('Iniciando pré-processamento')
+  const preprocessed = await preprocessImage(imageSource)
+  dbg('Pré-processamento concluído, enviando para Vision API')
 
-    const textoBruto = await chamarVisionAPI(preprocessed)
-    dbg('Texto bruto retornado pela Vision API:', textoBruto)
+  const textoBruto = await chamarVisionAPI(preprocessed)
+  dbg('Texto bruto retornado pela Vision API:', textoBruto)
 
-    const dataExtraida = normalizarData(textoBruto)
-    const horaExtraida = normalizarHora(textoBruto)
+  const dataExtraida = normalizarData(textoBruto)
+  const horaExtraida = normalizarHora(textoBruto)
 
-    dbg('Data identificada:', dataExtraida)
-    dbg('Hora identificada:', horaExtraida)
+  dbg('Data identificada:', dataExtraida)
+  dbg('Hora identificada:', horaExtraida)
 
-    const confianca = dataExtraida && horaExtraida ? 95 : dataExtraida || horaExtraida ? 50 : 0
-    dbg('Confiança:', confianca, '| Sucesso:', !!(dataExtraida && horaExtraida))
+  const confianca = dataExtraida && horaExtraida ? 95 : dataExtraida || horaExtraida ? 50 : 0
+  dbg('Confiança:', confianca, '| Sucesso:', !!(dataExtraida && horaExtraida))
 
-    return {
-      data: dataExtraida,
-      hora: horaExtraida,
-      confianca,
-      texto_bruto: textoBruto,
-      sucesso: !!(dataExtraida && horaExtraida),
-    }
-  } catch (err) {
-    dbg('Exceção no processamento OCR:', err)
-    return {
-      data: null,
-      hora: null,
-      confianca: 0,
-      texto_bruto: String(err),
-      sucesso: false,
-    }
+  return {
+    data: dataExtraida,
+    hora: horaExtraida,
+    confianca,
+    texto_bruto: textoBruto,
+    sucesso: !!(dataExtraida && horaExtraida),
   }
 }
 

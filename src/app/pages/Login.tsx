@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/features/auth/useAuth'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import { AlertCircle } from 'lucide-react'
 
 export function Login() {
@@ -12,8 +13,9 @@ export function Login() {
     setErro('')
     try {
       await signInWithGoogle()
-    } catch {
-      setErro('Erro ao conectar com Google. Tente novamente.')
+    } catch (err) {
+      console.error('[Login] Erro ao conectar com Google:', err)
+      setErro(await mensagemErroAmigavel(err))
       setLoading(false)
     }
   }

@@ -3,6 +3,7 @@ import { AlertCircle, X, Clock } from 'lucide-react'
 import { useOvertimeModal, useAuthStore } from '@/store'
 import { salvarHoraExtra } from '@/features/work-records/recordsService'
 import { minutosParaLabel, minutosParaHora } from '@/utils/dateUtils'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 
 export function OvertimeModal() {
   const {
@@ -47,8 +48,9 @@ export function OvertimeModal() {
       })
       closeModal()
       setJustificativa('')
-    } catch {
-      setErro('Erro ao salvar. Tente novamente.')
+    } catch (err) {
+      console.error('[OvertimeModal] Erro ao salvar hora extra:', err)
+      setErro(await mensagemErroAmigavel(err))
     } finally {
       setLoading(false)
     }

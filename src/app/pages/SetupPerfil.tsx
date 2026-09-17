@@ -3,6 +3,7 @@ import { supabase } from '@/services/supabase/client'
 import { useAuthStore } from '@/store'
 import { cacheProfile } from '@/services/supabase/localDb'
 import { useAuth } from '@/features/auth/useAuth'
+import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import { UserCircle } from 'lucide-react'
 
 export function SetupPerfil() {
@@ -67,19 +68,10 @@ export function SetupPerfil() {
       const supabaseError = e as { code?: string; message?: string }
       console.error('[SetupPerfil] Erro ao salvar perfil:', supabaseError)
 
+      setErro(await mensagemErroAmigavel(e))
+
       if (supabaseError.code === '23503') {
-        setErro('Sua sessão expirou. Você será desconectado — entre novamente para continuar.')
         await signOut()
-      } else if (supabaseError.code === '42501') {
-        setErro('Sem permissão para salvar (RLS). Verifique se está autenticado corretamente.')
-      } else if (supabaseError.code === '23502') {
-        setErro('Um campo obrigatório não foi enviado. Verifique os dados.')
-      } else if (supabaseError.code === '23505') {
-        setErro('Já existe um perfil cadastrado para este usuário.')
-      } else if (supabaseError.code === '42P01') {
-        setErro('Tabela não encontrada no banco. Contate o administrador.')
-      } else {
-        setErro(supabaseError.message || 'Erro ao salvar perfil. Tente novamente.')
       }
     } finally {
       setLoading(false)
