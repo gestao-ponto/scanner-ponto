@@ -18,6 +18,7 @@ export function useRecords() {
     removeRecord,
     setLoading,
     setLastSync,
+    setPeriodo,
   } = useRecordsStore()
   const { openModal, diasIgnorados } = useOvertimeModal()
 
@@ -103,5 +104,6 @@ export function useRecords() {
     adicionarMarcacao,
     excluirMarcacao,
     recarregar: carregarRegistros,
+    setPeriodo,
   }
 }

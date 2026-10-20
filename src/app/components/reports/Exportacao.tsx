@@ -1,17 +1,32 @@
-import { useState } from 'react'
-import { FileText, Table, Download, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileText, Table, Download, CheckCircle, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
 import { useAuthStore } from '@/store'
 import { gerarCartaoPonto } from '@/services/export/exportDocx'
 import { gerarAutorizacaoHorasExtras } from '@/services/export/exportXlsx'
 import { getHorasExtras } from '@/features/work-records/recordsService'
-import { periodoReadyToClose } from '@/utils/dateUtils'
+import { periodoReadyToClose, periodoAnterior, periodoSeguinte, getPeriodoAtual } from '@/utils/dateUtils'
 import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import { format } from 'date-fns'
 
 export function Exportacao() {
-  const { records, summaries, periodo } = useRecords()
+  const { records, summaries, periodo, setPeriodo } = useRecords()
   const { profile } = useAuthStore()
+
+  // useRecords já recarrega os registros automaticamente quando `periodo` muda
+  // (efeito interno dependente de `periodo`) — só precisamos atualizar o período.
+  const periodoAtualLabel = getPeriodoAtual().label
+  const noPeriodoAtual = periodo.label === periodoAtualLabel
+
+  const irParaPeriodoAnterior = () => setPeriodo(periodoAnterior(periodo))
+  const irParaPeriodoSeguinte = () => setPeriodo(periodoSeguinte(periodo))
+
+  // Ao sair desta tela, volta o período global pro atual — evita que Dashboard,
+  // Scanner e Calendário fiquem mostrando um período passado sem o usuário notar.
+  useEffect(() => {
+    return () => setPeriodo(getPeriodoAtual())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [loadingDocx, setLoadingDocx] = useState(false)
   const [loadingXlsx, setLoadingXlsx] = useState(false)
@@ -62,10 +77,34 @@ export function Exportacao() {
 
       {/* Período */}
       <div className="card" style={{ borderColor: prontoParaFechar ? 'var(--badge-yellow-text)55' : undefined }}>
-        <p className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>Período</p>
-        <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{periodo.label}</p>
-        {prontoParaFechar && (
-          <p className="text-xs mt-1.5 flex items-center gap-1"
+        <div className="flex items-center justify-between gap-2">
+          <button onClick={irParaPeriodoAnterior} aria-label="Período anterior"
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'var(--bg-surface-2, rgba(255,255,255,0.06))' }}>
+            <ChevronLeft size={16} style={{ color: 'var(--text-secondary)' }} />
+          </button>
+
+          <div className="text-center">
+            <p className="text-xs mb-0.5" style={{ color: 'var(--text-muted)' }}>Período</p>
+            <p className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{periodo.label}</p>
+          </div>
+
+          <button onClick={irParaPeriodoSeguinte} aria-label="Próximo período"
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'var(--bg-surface-2, rgba(255,255,255,0.06))' }}>
+            <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+          </button>
+        </div>
+
+        {!noPeriodoAtual && (
+          <button onClick={() => setPeriodo(getPeriodoAtual())}
+            className="text-xs w-full text-center mt-2" style={{ color: 'var(--badge-blue-text)' }}>
+            Voltar para o período atual
+          </button>
+        )}
+
+        {prontoParaFechar && noPeriodoAtual && (
+          <p className="text-xs mt-1.5 flex items-center gap-1 justify-center"
             style={{ color: 'var(--badge-yellow-text)' }}>
             <AlertCircle size={12} /> Pronto para fechamento
           </p>

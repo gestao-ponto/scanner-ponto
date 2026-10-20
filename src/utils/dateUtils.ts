@@ -41,6 +41,24 @@ export function getPeriodoPorMes(ano: number, mes: number): Periodo {
   }
 }
 
+// ─── Navegação entre períodos ─────────────────────────────────────────────────
+// `getPeriodoPorMes(ano, mes)` usa `mes` (1-indexado) como o mês de INÍCIO
+// do período (dia 20). Navegar = mover esse mês de início em ±1.
+
+export function periodoAnterior(periodo: Periodo): Periodo {
+  const mes = periodo.inicio.getMonth() + 1
+  const mesAnterior = mes === 1 ? 12 : mes - 1
+  const anoAnterior = mes === 1 ? periodo.inicio.getFullYear() - 1 : periodo.inicio.getFullYear()
+  return getPeriodoPorMes(anoAnterior, mesAnterior)
+}
+
+export function periodoSeguinte(periodo: Periodo): Periodo {
+  const mes = periodo.inicio.getMonth() + 1
+  const mesSeguinte = mes === 12 ? 1 : mes + 1
+  const anoSeguinte = mes === 12 ? periodo.inicio.getFullYear() + 1 : periodo.inicio.getFullYear()
+  return getPeriodoPorMes(anoSeguinte, mesSeguinte)
+}
+
 export function periodoReadyToClose(periodo: Periodo): boolean {
   const hoje = new Date()
   hoje.setHours(0, 0, 0, 0)
