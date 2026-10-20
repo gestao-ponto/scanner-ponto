@@ -10,7 +10,13 @@ import {
 } from '@/services/supabase/localDb'
 import { pullRecordsFromServer } from './syncService'
 import { atribuirTipos } from '@/features/work-records/calculations'
+import { horaParaMinutos } from '@/utils/timeUtils'
 import type { WorkRecord, OrigemMarcacao } from '@/types'
+
+// Marcações do mesmo dia a menos de 3 minutos uma da outra são quase
+// certamente a mesma batida lida duas vezes (comprovante escaneado de novo,
+// retry de upload, etc.) — não um segundo evento real de ponto.
+const TOLERANCIA_DUPLICATA_MIN = 3
 
 const DEBUG = import.meta.env.DEV
 function dbg(...args: unknown[]) {
@@ -40,6 +46,19 @@ export async function adicionarRegistro(
   // Buscar registros do dia para calcular tipo pela posição
   const registrosDia = await getRecordsByPeriodo(data, data)
   dbg(`Registros existentes no dia ${data}:`, registrosDia.length)
+
+  // Bloquear duplicata: uma marcação muito próxima de outra já existente no
+  // mesmo dia some os pares entrada/saída (a contagem é posicional) e pode
+  // gerar banco/hora-extra falso. Ver CLAUDE.md > BUG conhecido.
+  const minutosNovo = horaParaMinutos(horaFormatada.slice(0, 5))
+  const duplicata = registrosDia.find(
+    (r) => Math.abs(horaParaMinutos(r.hora.slice(0, 5)) - minutosNovo) < TOLERANCIA_DUPLICATA_MIN
+  )
+  if (duplicata) {
+    throw new Error(
+      `Já existe uma marcação às ${duplicata.hora.slice(0, 5)} neste dia — essa leitura (${hora}) parece duplicada.`
+    )
+  }
 
   const todos = [...registrosDia, { hora: horaFormatada }]
   const tipos = atribuirTipos(todos)

@@ -428,11 +428,13 @@ function ManualEntry({ onCaptura }: { onCaptura: (data: string, hora: string) =>
   const [hora, setHora] = useState('')
   const [loading, setLoading] = useState(false)
   const [sucesso, setSucesso] = useState(false)
+  const [erro, setErro] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!data || !hora) return
     setLoading(true)
+    setErro('')
     try {
       const [y, m, d] = data.split('-')
       const dataBR = `${d}/${m}/${y}`
@@ -441,6 +443,9 @@ function ManualEntry({ onCaptura }: { onCaptura: (data: string, hora: string) =>
       setSucesso(true)
       setHora('')
       setTimeout(() => setSucesso(false), 2000)
+    } catch (err) {
+      dbg('Erro no registro manual:', err)
+      setErro(await mensagemErroAmigavel(err))
     } finally {
       setLoading(false)
     }
@@ -468,6 +473,11 @@ function ManualEntry({ onCaptura }: { onCaptura: (data: string, hora: string) =>
           required
         />
       </div>
+      {erro && (
+        <p className="text-xs text-red-400 flex items-center gap-1">
+          <AlertCircle size={12} /> {erro}
+        </p>
+      )}
       <button
         type="submit"
         disabled={loading || !hora}
