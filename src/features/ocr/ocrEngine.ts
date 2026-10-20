@@ -24,15 +24,17 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
       const ctx = canvas.getContext('2d')!
 
       let { width, height } = img
-      const TARGET = 2000
-      const ratio = TARGET / Math.max(width, height)
-      if (ratio > 1) {
-        width = Math.floor(width * ratio)
-        height = Math.floor(height * ratio)
-      } else if (width > 3000 || height > 3000) {
-        const r2 = 3000 / Math.max(width, height)
-        width = Math.floor(width * r2)
-        height = Math.floor(height * r2)
+      // Fotos de celular saem com 3000-4000px+ de lado — um canvas nesse
+      // tamanho consome dezenas de MB de RAM por leitura. Texto de
+      // comprovante térmico não precisa dessa resolução pro OCR funcionar,
+      // e repetir isso a cada foto (câmera nativa + canvas grande) é o que
+      // faz o Android/Chrome descartar a aba do PWA por pressão de memória
+      // a cada poucas leituras seguidas. Nunca ampliamos (só reduzimos).
+      const MAX_DIMENSAO = 1800
+      if (Math.max(width, height) > MAX_DIMENSAO) {
+        const escala = MAX_DIMENSAO / Math.max(width, height)
+        width = Math.floor(width * escala)
+        height = Math.floor(height * escala)
       }
 
       canvas.width = width
@@ -73,6 +75,10 @@ export async function preprocessImage(imageSource: string | File | Blob): Promis
       ctx.putImageData(imageData, 0, 0)
 
       const dataUrl = canvas.toDataURL('image/png')
+      // Libera o buffer do canvas imediatamente em vez de esperar o GC —
+      // ajuda em dispositivos com pouca RAM que fazem várias leituras seguidas.
+      canvas.width = 0
+      canvas.height = 0
       if (imageSource instanceof Blob) URL.revokeObjectURL(url)
       resolve(dataUrl)
     }

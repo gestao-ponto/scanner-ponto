@@ -91,10 +91,27 @@ export function Dashboard() {
         </div>
       </div>
 
+      {/* Ação principal — única forma de chegar no Scanner (sem aba própria
+          na barra inferior), por isso precisa se destacar das caixas
+          informativas acima. */}
+      <button
+        onClick={() => setNavigateTo('scanner')}
+        className="w-full rounded-2xl p-5 flex flex-col items-center gap-2 text-center transition-transform active:scale-[0.98]"
+        style={{
+          background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          boxShadow: '0 8px 24px -8px #2563eb88',
+        }}
+      >
+        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          <ScanLine size={24} color="#fff" />
+        </div>
+        <span className="text-sm font-semibold text-white">Escanear comprovante</span>
+        <span className="text-xs text-white/70">Registrar ponto com a câmera</span>
+      </button>
+
       <div>
         <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>Ações rápidas</p>
-        <div className="grid grid-cols-2 gap-2.5">
-          <QuickAction icon={<ScanLine size={16} color="#2563eb" />}                    label="Escanear comprovante" accent onClick={() => setNavigateTo('scanner')} />
+        <div className="grid grid-cols-3 gap-2.5">
           <QuickAction icon={<FileDown size={16} color="var(--text-muted)" />}          label="Exportar cartão"      onClick={() => setNavigateTo('exportar')} />
           <QuickAction icon={<CalendarDays size={16} color="var(--text-muted)" />}      label="Ver calendário"       onClick={() => setNavigateTo('calendario')} />
           <QuickAction icon={<List size={16} color="var(--text-muted)" />}              label="Registros"            onClick={() => setNavigateTo('registros')} />

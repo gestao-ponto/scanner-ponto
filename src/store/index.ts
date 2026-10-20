@@ -153,22 +153,37 @@ export const useOvertimeModal = create<OvertimeModalState>((set) => ({
 
 // ─── UI state ─────────────────────────────────────────────────────────────────
 
+interface Toast {
+  mensagem: string
+  tipo: 'sucesso' | 'erro'
+}
+
 interface UIState {
   isOnline: boolean
   hasPendingSync: boolean
   navigateTo: string | null
+  atualizacaoDisponivel: boolean
+  toast: Toast | null
   setOnline: (v: boolean) => void
   setHasPendingSync: (v: boolean) => void
   setNavigateTo: (t: string | null) => void
+  setAtualizacaoDisponivel: (v: boolean) => void
+  mostrarToast: (mensagem: string, tipo?: Toast['tipo']) => void
+  limparToast: () => void
 }
 
 export const useUIStore = create<UIState>((set) => ({
   isOnline: navigator.onLine,
   hasPendingSync: false,
   navigateTo: null,
+  atualizacaoDisponivel: false,
+  toast: null,
   setOnline: (v) => set({ isOnline: v }),
   setHasPendingSync: (v) => set({ hasPendingSync: v }),
   setNavigateTo: (t) => set({ navigateTo: t }),
+  setAtualizacaoDisponivel: (v) => set({ atualizacaoDisponivel: v }),
+  mostrarToast: (mensagem, tipo = 'sucesso') => set({ toast: { mensagem, tipo } }),
+  limparToast: () => set({ toast: null }),
 }))
 
 // ─── Theme state ──────────────────────────────────────────────────────────────

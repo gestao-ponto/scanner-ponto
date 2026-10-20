@@ -4,6 +4,7 @@ import { useRecords } from '@/features/work-records/useRecords'
 import { processarOCR } from '@/features/ocr/ocrEngine'
 import { parseDataBR } from '@/utils/dateUtils'
 import { mensagemErroAmigavel } from '@/utils/errorMessages'
+import { useUIStore } from '@/store'
 
 // ─── Debug logger (silencioso em produção) ────────────────────────────────────
 const DEBUG = import.meta.env.DEV
@@ -11,17 +12,24 @@ function dbg(...args: unknown[]) {
   if (DEBUG) console.log('[Scanner]', ...args)
 }
 
+// Setada antes de processar uma leitura e removida só quando termina (sucesso
+// ou falha). Se o app reiniciar com isso ainda setado, o AppLayout avisa o
+// usuário que a leitura pode não ter sido salva — ver AppLayout.tsx.
+const CHAVE_SCANNER_EM_ANDAMENTO = 'meu-ponto:scanner-em-andamento'
+
 type Tab = 'foto' | 'manual'
 
 export function Scanner() {
   const [tab, setTab] = useState<Tab>('foto')
   const { adicionarMarcacao } = useRecords()
+  const { mostrarToast } = useUIStore()
 
   const handleCaptura = useCallback(
     async (dataBR: string, hora: string) => {
       const dataISO = parseDataBR(dataBR)
       dbg('handleCaptura', { dataBR, dataISO, hora })
       await adicionarMarcacao(dataISO, hora, 'ocr')
+      mostrarToast(`Ponto registrado: ${dataBR} às ${hora}`, 'sucesso')
     },
     [adicionarMarcacao]
   )
@@ -211,16 +219,20 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
     })
 
     setProgresso({ atual: 0, total: arquivos.length })
+    sessionStorage.setItem(CHAVE_SCANNER_EM_ANDAMENTO, String(Date.now()))
 
-    // Processar sequencialmente — aguardar cada uma antes da próxima
-    for (let i = 0; i < novosItens.length; i++) {
-      setProgresso({ atual: i + 1, total: arquivos.length })
-      await processarUmaImagem(novosItens[i], onCaptura)
+    try {
+      // Processar sequencialmente — aguardar cada uma antes da próxima
+      for (let i = 0; i < novosItens.length; i++) {
+        setProgresso({ atual: i + 1, total: arquivos.length })
+        await processarUmaImagem(novosItens[i], onCaptura)
+      }
+    } finally {
+      sessionStorage.removeItem(CHAVE_SCANNER_EM_ANDAMENTO)
+      setProgresso({ atual: 0, total: 0 })
+      setProcessando(false)
+      dbg('Fila concluída')
     }
-
-    setProgresso({ atual: 0, total: 0 })
-    setProcessando(false)
-    dbg('Fila concluída')
   }
 
   const handleFiles = (files: FileList | null) => {

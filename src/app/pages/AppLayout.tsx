@@ -1,24 +1,28 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, ScanLine, Calendar, List, FileDown, Settings, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, Calendar, List, FileDown, Settings, Sun, Moon } from 'lucide-react'
 import { Dashboard } from '@/app/components/dashboard/Dashboard'
 import { Scanner } from '@/features/ocr/Scanner'
 import { Calendario } from '@/app/components/calendar/Calendario'
 import { Registros } from '@/app/components/records/Registros'
 import { Exportacao } from '@/app/components/reports/Exportacao'
 import { OvertimeModal } from '@/app/components/dashboard/OvertimeModal'
+import { Toast } from '@/app/components/Toast'
 import { Configuracoes } from './Configuracoes'
 import { useUIStore, useThemeStore } from '@/store'
 import { initSyncListener } from '@/features/work-records/syncService'
 
 type Tab = 'dashboard' | 'scanner' | 'calendario' | 'registros' | 'exportar' | 'config'
 
+// "scanner" não tem botão na barra inferior — é acessado pelo destaque na
+// tela Início, pra não duplicar a mesma ação em dois lugares do app.
 const TABS = [
   { id: 'dashboard',  label: 'Início',     icon: LayoutDashboard },
-  { id: 'scanner',    label: 'Scanner',    icon: ScanLine },
   { id: 'calendario', label: 'Calendário', icon: Calendar },
   { id: 'registros',  label: 'Registros',  icon: List },
   { id: 'exportar',   label: 'Exportar',   icon: FileDown },
 ] as const
+
+const CHAVE_TAB_ATIVA = 'meu-ponto:tab-ativa'
 
 const PAGE_TITLES: Record<Tab, string> = {
   dashboard:  'Ponto SENAI',
@@ -46,8 +50,21 @@ function FingerprintIcon({ size = 16 }: { size?: number }) {
 }
 
 export function AppLayout() {
-  const [tab, setTab] = useState<Tab>('dashboard')
-  const { isOnline, hasPendingSync, setOnline, navigateTo, setNavigateTo } = useUIStore()
+  // Restaura a aba em que o usuário estava antes de um reload inesperado
+  // (ex.: Android descartando a aba do PWA por pressão de memória após abrir
+  // a câmera várias vezes seguidas) — sem isso, qualquer reload jogava o
+  // usuário de volta pro Início, mesmo que ele estivesse no meio de outra
+  // tela, o que parecia "o app sumiu com o que eu tava fazendo".
+  const [tab, setTabState] = useState<Tab>(() => {
+    const salva = sessionStorage.getItem(CHAVE_TAB_ATIVA) as Tab | null
+    return salva ?? 'dashboard'
+  })
+  const setTab = (t: Tab) => {
+    setTabState(t)
+    sessionStorage.setItem(CHAVE_TAB_ATIVA, t)
+  }
+
+  const { isOnline, hasPendingSync, setOnline, navigateTo, setNavigateTo, mostrarToast } = useUIStore()
   const { theme, toggleTheme } = useThemeStore()
 
   // Navegação one-shot vinda do Dashboard (ações rápidas)
@@ -57,6 +74,17 @@ export function AppLayout() {
       setNavigateTo(null)
     }
   }, [navigateTo])
+
+  // Se o app reiniciou com uma leitura de comprovante em andamento (flag
+  // setada pelo Scanner antes de processar e só removida ao terminar), o
+  // registro daquela leitura pode não ter sido salvo. Avisa explicitamente
+  // em vez de deixar o usuário na dúvida.
+  useEffect(() => {
+    if (sessionStorage.getItem('meu-ponto:scanner-em-andamento')) {
+      sessionStorage.removeItem('meu-ponto:scanner-em-andamento')
+      mostrarToast('O app reiniciou durante uma leitura. Confira em Registros se o ponto foi salvo.', 'erro')
+    }
+  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -164,6 +192,7 @@ export function AppLayout() {
       </nav>
 
       <OvertimeModal />
+      <Toast />
     </div>
   )
 }
