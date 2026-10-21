@@ -4,6 +4,11 @@ import { useRecordsStore, useAuthStore, useOvertimeModal } from '@/store'
 import { adicionarRegistro, getRegistrosPeriodo, excluirRegistro } from '@/features/work-records/recordsService'
 import { calcularResumoDiario, precisaAutorizacao, calcularHorarioAutorizacao } from '@/features/work-records/calculations'
 import { agruparPorDia } from '@/features/work-records/calculations'
+import {
+  marcarTurnoEspecial as marcarTurnoEspecialService,
+  desmarcarTurnoEspecial as desmarcarTurnoEspecialService,
+  getTurnoEspecialPeriodo,
+} from '@/features/work-records/turnoEspecialService'
 import type { OrigemMarcacao } from '@/types'
 
 export function useRecords() {
@@ -13,12 +18,14 @@ export function useRecords() {
     summaries,
     periodo,
     isLoading,
+    diasEspeciais,
     setRecords,
     addRecord,
     removeRecord,
     setLoading,
     setLastSync,
     setPeriodo,
+    setDiasEspeciais,
   } = useRecordsStore()
   const { openModal, diasIgnorados } = useOvertimeModal()
 
@@ -29,7 +36,11 @@ export function useRecords() {
     try {
       const inicio = format(periodo.inicio, 'yyyy-MM-dd')
       const fim = format(periodo.fim, 'yyyy-MM-dd')
-      const data = await getRegistrosPeriodo(userId, inicio, fim)
+      const [data, especiais] = await Promise.all([
+        getRegistrosPeriodo(userId, inicio, fim),
+        getTurnoEspecialPeriodo(userId, inicio, fim),
+      ])
+      setDiasEspeciais(especiais)
       setRecords(data)
       setLastSync(new Date().toISOString())
     } finally {
@@ -61,7 +72,7 @@ export function useRecords() {
       ])
 
       const recordsDia = agrupado.get(data) ?? []
-      const resumo = calcularResumoDiario(recordsDia)
+      const resumo = calcularResumoDiario(recordsDia, diasEspeciais.has(data))
 
       if (precisaAutorizacao(resumo) && !diasIgnorados.includes(data)) {
         const horario = calcularHorarioAutorizacao(recordsDia)
@@ -79,7 +90,7 @@ export function useRecords() {
 
       return record
     },
-    [userId, addRecord, openModal, diasIgnorados]
+    [userId, addRecord, openModal, diasIgnorados, diasEspeciais]
   )
 
   // Excluir marcação
@@ -92,6 +103,27 @@ export function useRecords() {
     [userId, removeRecord]
   )
 
+  // Marcar/desmarcar turno especial (jornada padrão não se aplica no dia)
+  const marcarTurnoEspecial = useCallback(
+    async (data: string) => {
+      if (!userId) return
+      await marcarTurnoEspecialService(userId, data)
+      setDiasEspeciais(new Set([...diasEspeciais, data]))
+    },
+    [userId, diasEspeciais, setDiasEspeciais]
+  )
+
+  const desmarcarTurnoEspecial = useCallback(
+    async (data: string) => {
+      if (!userId) return
+      await desmarcarTurnoEspecialService(userId, data)
+      const novo = new Set(diasEspeciais)
+      novo.delete(data)
+      setDiasEspeciais(novo)
+    },
+    [userId, diasEspeciais, setDiasEspeciais]
+  )
+
   // Dias pendentes (dias úteis sem marcações)
   const diasPendentes = summaries.filter((s) => s.status === 'ausente' || s.status === 'incompleto')
 
@@ -101,8 +133,11 @@ export function useRecords() {
     periodo,
     isLoading,
     diasPendentes,
+    diasEspeciais,
     adicionarMarcacao,
     excluirMarcacao,
+    marcarTurnoEspecial,
+    desmarcarTurnoEspecial,
     recarregar: carregarRegistros,
     setPeriodo,
   }

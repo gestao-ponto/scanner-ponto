@@ -48,6 +48,15 @@ export interface DailySummary {
   intrajornada: number        // em minutos trabalhados no intervalo
   status: StatusDia
   marcacoes: WorkRecord[]
+  turno_especial?: boolean    // jornada padrão não se aplica neste dia
+}
+
+// ─── Dia marcado como turno especial (jornada fora do padrão) ───────────────
+export interface SpecialShiftDay {
+  id: string
+  user_id: string
+  data: string        // YYYY-MM-DD
+  criado_at: string
 }
 
 export type StatusDia = 'completo' | 'incompleto' | 'ausente' | 'feriado' | 'fim_semana'

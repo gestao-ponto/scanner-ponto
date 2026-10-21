@@ -105,6 +105,33 @@ describe('Banco de horas (18:06 – 20:05)', () => {
   })
 })
 
+// ─── Turno especial ───────────────────────────────────────────────────────────
+
+describe('Turno especial (jornada padrão não se aplica)', () => {
+  it('saída 22:00 num dia normal → banco/extra conforme jornada padrão', () => {
+    const r1 = calcularResumoDiario([
+      r('08:00', 1), r('12:00', 2), r('18:00', 3), r('22:00', 4),
+    ])
+    expect(r1.hora_extra).toBeGreaterThan(0)
+  })
+
+  it('mesmo dia marcado como turno especial → sem banco/extra/intrajornada', () => {
+    const r1 = calcularResumoDiario(
+      [r('08:00', 1), r('12:00', 2), r('18:00', 3), r('22:00', 4)],
+      true
+    )
+    expect(r1.banco_horas).toBe(0)
+    expect(r1.hora_extra).toBe(0)
+    expect(r1.intrajornada).toBe(0)
+    expect(r1.turno_especial).toBe(true)
+  })
+
+  it('turno especial ainda soma horas trabalhadas normalmente', () => {
+    const r1 = calcularResumoDiario([r('08:00', 1), r('12:00', 2)], true)
+    expect(r1.horas_trabalhadas).toBe(240)
+  })
+})
+
 // ─── Hora extra ───────────────────────────────────────────────────────────────
 
 describe('Hora extra (após 20:05)', () => {
@@ -130,16 +157,27 @@ describe('Hora extra (após 20:05)', () => {
 // ─── Intrajornada ─────────────────────────────────────────────────────────────
 
 describe('Intrajornada (12:00 – 14:00 = hora extra)', () => {
-  it('marcações 08:00→12:15 e 13:20→18:00 → 55min de intrajornada', () => {
-    // Par1: 08:00→12:15 — sobreposição com [12:00-14:00] = 15min
-    // Par2: 13:20→18:00 — sobreposição com [12:00-14:00] = 40min
-    // Total intrajornada = 55min
+  it('marcações 08:00→12:15 e 13:20→18:00 → 45min de intrajornada (janela núcleo 12:05-13:55)', () => {
+    // A sobreposição é calculada contra a janela "núcleo" [12:05,13:55]
+    // (tolerância de ±5min já aplicada), não contra [12:00,14:00] cru.
+    // Par1: 08:00→12:15 — sobreposição com [12:05-13:55] = 10min
+    // Par2: 13:20→18:00 — sobreposição com [12:05-13:55] = 35min
+    // Total intrajornada = 45min
     const r1 = calcularResumoDiario([
       r('08:00', 1), r('12:15', 2),
       r('13:20', 3), r('18:00', 4),
     ])
-    expect(r1.intrajornada).toBe(55)
-    expect(r1.hora_extra).toBe(55)
+    expect(r1.intrajornada).toBe(45)
+    expect(r1.hora_extra).toBe(45)
+  })
+
+  it('retorno do almoço 1min antes do horário (13:59, dentro da tolerância) → sem intrajornada', () => {
+    const r1 = calcularResumoDiario([
+      r('08:00', 1), r('12:00', 2),
+      r('13:59', 3), r('18:00', 4),
+    ])
+    expect(r1.intrajornada).toBe(0)
+    expect(r1.hora_extra).toBe(0)
   })
 
   it('sem marcação no intervalo → intrajornada = 0', () => {

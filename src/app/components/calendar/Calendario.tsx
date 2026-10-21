@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { format, eachDayOfInterval, getDay, isWeekend } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { X } from 'lucide-react'
+import { X, Clock } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
 import type { DailySummary } from '@/types'
 import { formatDataLonga, minutosParaLabel } from '@/utils/dateUtils'
@@ -9,8 +9,9 @@ import { formatDataLonga, minutosParaLabel } from '@/utils/dateUtils'
 const DIAS_SEMANA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 export function Calendario() {
-  const { summaries, periodo } = useRecords()
+  const { summaries, periodo, diasEspeciais, marcarTurnoEspecial, desmarcarTurnoEspecial } = useRecords()
   const [diaSelecionado, setDiaSelecionado] = useState<string | null>(null)
+  const [alterandoTurno, setAlterandoTurno] = useState(false)
 
   const summaryMap = useMemo(() => {
     const map = new Map<string, DailySummary>()
@@ -81,6 +82,7 @@ export function Calendario() {
           const isoData = format(dia, 'yyyy-MM-dd')
           const status  = statusDia(isoData, dia)
           const isSelected = diaSelecionado === isoData
+          const ehTurnoEspecial = diasEspeciais.has(isoData)
           const cor = corStatus[status]
 
           return (
@@ -96,6 +98,9 @@ export function Calendario() {
                 cursor: status === 'fds' ? 'default' : 'pointer',
               }}>
               {format(dia, 'd')}
+              {ehTurnoEspecial && (
+                <Clock size={10} className="absolute top-0.5 right-0.5" style={{ color: cor.text, opacity: 0.8 }} />
+              )}
             </button>
           )
         })}
@@ -110,9 +115,40 @@ export function Calendario() {
             <X size={16} />
           </button>
 
-          <p className="font-semibold text-sm capitalize mb-3" style={{ color: 'var(--text-primary)' }}>
+          <p className="font-semibold text-sm capitalize mb-1" style={{ color: 'var(--text-primary)' }}>
             {formatDataLonga(diaSelecionado)}
           </p>
+
+          <button
+            disabled={alterandoTurno}
+            onClick={async () => {
+              setAlterandoTurno(true)
+              try {
+                if (diasEspeciais.has(diaSelecionado)) {
+                  await desmarcarTurnoEspecial(diaSelecionado)
+                } else {
+                  await marcarTurnoEspecial(diaSelecionado)
+                }
+              } finally {
+                setAlterandoTurno(false)
+              }
+            }}
+            className="text-xs flex items-center gap-1 mb-3 px-2 py-1 rounded-lg transition-colors disabled:opacity-50"
+            style={{
+              background: diasEspeciais.has(diaSelecionado) ? 'var(--badge-blue-bg)' : 'var(--bg-overlay)',
+              color: diasEspeciais.has(diaSelecionado) ? 'var(--badge-blue-text)' : 'var(--text-muted)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <Clock size={12} />
+            {diasEspeciais.has(diaSelecionado) ? 'Turno especial — toque para desmarcar' : 'Marcar como turno especial'}
+          </button>
+
+          {diasEspeciais.has(diaSelecionado) && (
+            <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+              Jornada padrão (banco/hora extra) não é aplicada neste dia.
+            </p>
+          )}
 
           {summarioDia ? (
             <div className="space-y-2">

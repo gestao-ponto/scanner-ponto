@@ -99,7 +99,14 @@ function calcularBancoExtra(saida: number): { banco: number; extra: number } {
 
 // ─── Cálculo do resumo diário ─────────────────────────────────────────────────
 
-export function calcularResumoDiario(records: WorkRecord[]): Omit<DailySummary, 'id' | 'user_id'> {
+// `isDiaEspecial`: quando true, a jornada padrão (SAIDA_NORMAL/LIMITE_BANCO)
+// não se aplica — o dia tem um turno combinado diferente do usual, então
+// nada é contado como banco/hora-extra/intrajornada. As horas trabalhadas
+// continuam sendo somadas normalmente.
+export function calcularResumoDiario(
+  records: WorkRecord[],
+  isDiaEspecial = false
+): Omit<DailySummary, 'id' | 'user_id'> {
   const ordenados = [...records].sort((a, b) => a.hora.localeCompare(b.hora))
   const marcacoes = ordenados.map((r) => horaParaMinutos(r.hora))
 
@@ -117,6 +124,7 @@ export function calcularResumoDiario(records: WorkRecord[]): Omit<DailySummary, 
       intrajornada: 0,
       status: marcacoes.length === 1 ? 'incompleto' : 'ausente',
       marcacoes: ordenados,
+      turno_especial: isDiaEspecial,
     }
   }
 
@@ -133,28 +141,34 @@ export function calcularResumoDiario(records: WorkRecord[]): Omit<DailySummary, 
     horasTrabalhadas += duracao
 
     // ── Intrajornada ──────────────────────────────────────────────────────────
-    // Tempo trabalhado dentro do intervalo 12:00–14:00 = hora extra.
+    // Tempo trabalhado dentro do intervalo de almoço = hora extra.
     //
-    // Regra: calcular a sobreposição do par com [12:00, 14:00],
-    // MAS apenas quando há mais de 2 marcações no dia (par de almoço explícito)
-    // OU quando a entrada do par começa dentro do intervalo.
+    // Regra: calcular a sobreposição do par com a janela "núcleo" do almoço
+    // ([12:05, 13:55] — SAIDA_ALMOCO_MAX a RETORNO_ALMOCO_MIN), não com
+    // [12:00,14:00] cru. Sair até 12:05 ou voltar a partir de 13:55 já conta
+    // como "dentro da tolerância" em todo o resto do app (classificação de
+    // tipo usa a mesma banda de ±5min) — usar os limites crus aqui criava um
+    // falso positivo: voltar do almoço 1 min mais cedo (ex. 13:59, dentro da
+    // tolerância) gerava "1 minuto de intrajornada/hora extra" sem motivo.
     //
     // Com apenas 2 marcações (08:00→18:00), o intervalo é considerado
     // como almoço já descontado — não gera intrajornada.
-    // Com 4+ marcações, qualquer sobreposição real com [12:00,14:00] é intrajornada.
+    // Com 4+ marcações, sobreposição com a janela núcleo é intrajornada.
     const temMarcacaoAlmoco = marcacoes.length >= 4
-    if (temMarcacaoAlmoco) {
-      const inicioIntra = Math.max(entrada, SAIDA_ALMOCO)
-      const fimIntra    = Math.min(saida,   RETORNO_ALMOCO)
+    if (temMarcacaoAlmoco && !isDiaEspecial) {
+      const inicioIntra = Math.max(entrada, SAIDA_ALMOCO_MAX)
+      const fimIntra    = Math.min(saida,   RETORNO_ALMOCO_MIN)
       if (inicioIntra < fimIntra) {
         intrajornada += fimIntra - inicioIntra
       }
     }
 
     // ── Banco e hora extra ────────────────────────────────────────────────────
-    const { banco, extra } = calcularBancoExtra(saida)
-    bancoHoras += banco
-    horaExtra  += extra
+    if (!isDiaEspecial) {
+      const { banco, extra } = calcularBancoExtra(saida)
+      bancoHoras += banco
+      horaExtra  += extra
+    }
   }
 
   // Intrajornada também é hora extra
@@ -176,6 +190,7 @@ export function calcularResumoDiario(records: WorkRecord[]): Omit<DailySummary, 
     intrajornada,
     status: (bancoHoras > 0 || horaExtra > 0) ? 'completo' : status,
     marcacoes: ordenados,
+    turno_especial: isDiaEspecial,
   }
 }
 

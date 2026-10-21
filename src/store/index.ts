@@ -36,12 +36,14 @@ interface RecordsState {
   periodo: Periodo
   isLoading: boolean
   lastSync: string | null
+  diasEspeciais: Set<string>
   setRecords: (records: WorkRecord[]) => void
   addRecord: (record: WorkRecord) => void
   removeRecord: (id: string) => void
   setPeriodo: (p: Periodo) => void
   setLoading: (v: boolean) => void
   setLastSync: (t: string) => void
+  setDiasEspeciais: (dias: Set<string>) => void
   recalcularSummaries: () => void
 }
 
@@ -51,6 +53,7 @@ export const useRecordsStore = create<RecordsState>((set, get) => ({
   periodo: getPeriodoAtual(),
   isLoading: false,
   lastSync: null,
+  diasEspeciais: new Set(),
 
   setRecords: (records) => {
     set({ records })
@@ -75,13 +78,18 @@ export const useRecordsStore = create<RecordsState>((set, get) => ({
   setLoading: (v) => set({ isLoading: v }),
   setLastSync: (t) => set({ lastSync: t }),
 
+  setDiasEspeciais: (dias) => {
+    set({ diasEspeciais: dias })
+    get().recalcularSummaries()
+  },
+
   recalcularSummaries: () => {
-    const { records } = get()
+    const { records, diasEspeciais } = get()
     const agrupado = agruparPorDia(records)
     const summaries: DailySummary[] = []
 
     agrupado.forEach((recs, data) => {
-      const resumo = calcularResumoDiario(recs)
+      const resumo = calcularResumoDiario(recs, diasEspeciais.has(data))
       summaries.push({
         id: `summary-${data}`,
         user_id: recs[0]?.user_id ?? '',
