@@ -8,6 +8,8 @@ interface CameraCaptureProps {
 
 type Estado = 'abrindo' | 'pronta' | 'erro'
 
+const CHAVE_CAMERA_PREFERIDA = 'meu-ponto:camera-preferida'
+
 // Captura a foto dentro da própria página via getUserMedia, em vez de abrir
 // o app de Câmera nativo (<input capture>). No Android, um PWA instalado em
 // modo standalone perde prioridade de memória assim que vai pra segundo
@@ -20,14 +22,41 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const streamRef = useRef<MediaStream | null>(null)
   const [estado, setEstado] = useState<Estado>('abrindo')
   const [erro, setErro] = useState('')
-  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+
+  // Celulares com câmera principal + ultra-angular (+ às vezes telephoto)
+  // expõem cada lente como um deviceId separado em enumerateDevices(). Não
+  // há uma forma confiável de saber pela API qual delas é a "principal" —
+  // facingMode:"environment" às vezes resolve pra lente errada (ultra-
+  // angular). Em vez de adivinhar, listamos as câmeras disponíveis e
+  // deixamos o usuário escolher/alternar, lembrando a escolha pra próxima vez.
+  const [dispositivos, setDispositivos] = useState<MediaDeviceInfo[]>([])
+  const [indiceAtual, setIndiceAtual] = useState(0)
 
   useEffect(() => {
     let cancelado = false
 
-    async function iniciarCamera() {
-      setEstado('abrindo')
+    function pararStream() {
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
+    }
+
+    async function abrirStream(constraints: MediaStreamConstraints) {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      if (cancelado) {
+        stream.getTracks().forEach((t) => t.stop())
+        return null
+      }
       pararStream()
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      return stream
+    }
+
+    async function iniciar() {
+      setEstado('abrindo')
 
       if (!navigator.mediaDevices?.getUserMedia) {
         setErro('Este navegador não suporta captura de câmera na página. Use "Selecionar da galeria".')
@@ -36,27 +65,37 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: facingMode },
-            // Resolução suficiente pra OCR de texto impresso — pedir mais
-            // só aumentaria memória/tempo de captura à toa.
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
+        // Se já sabemos a câmera preferida do usuário, abre direto nela.
+        const preferida = localStorage.getItem(CHAVE_CAMERA_PREFERIDA)
+        const constraintsIniciais: MediaStreamConstraints = {
+          video: preferida
+            ? { deviceId: { exact: preferida }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+            : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
-        })
-
-        if (cancelado) {
-          stream.getTracks().forEach((t) => t.stop())
-          return
         }
 
-        streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
+        let stream: MediaStream | null
+        try {
+          stream = await abrirStream(constraintsIniciais)
+        } catch {
+          // deviceId salvo pode não existir mais (trocou de celular, etc.) — cai pro padrão
+          stream = await abrirStream({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false,
+          })
         }
+        if (!stream) return
+
+        // Agora que temos permissão, os labels/deviceIds ficam disponíveis
+        const todos = await navigator.mediaDevices.enumerateDevices()
+        if (cancelado) return
+        const cameras = todos.filter((d) => d.kind === 'videoinput')
+        setDispositivos(cameras)
+
+        const idAtual = stream.getVideoTracks()[0]?.getSettings().deviceId
+        const idx = cameras.findIndex((c) => c.deviceId === idAtual)
+        setIndiceAtual(idx >= 0 ? idx : 0)
+
         setEstado('pronta')
       } catch (err) {
         if (cancelado) return
@@ -72,18 +111,39 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       }
     }
 
-    function pararStream() {
-      streamRef.current?.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-
-    iniciarCamera()
+    iniciar()
 
     return () => {
       cancelado = true
       pararStream()
     }
-  }, [facingMode])
+  }, [])
+
+  const trocarCamera = async () => {
+    if (dispositivos.length < 2) return
+    const proximoIndice = (indiceAtual + 1) % dispositivos.length
+    const proximo = dispositivos[proximoIndice]
+
+    setEstado('abrindo')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: proximo.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false,
+      })
+      streamRef.current?.getTracks().forEach((t) => t.stop())
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      setIndiceAtual(proximoIndice)
+      localStorage.setItem(CHAVE_CAMERA_PREFERIDA, proximo.deviceId)
+      setEstado('pronta')
+    } catch {
+      setErro('Não foi possível trocar de câmera.')
+      setEstado('erro')
+    }
+  }
 
   const capturar = () => {
     const video = videoRef.current
@@ -117,8 +177,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         </button>
         <span className="text-white text-sm font-medium">Escanear comprovante</span>
         <button
-          onClick={() => setFacingMode((m) => (m === 'environment' ? 'user' : 'environment'))}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white"
+          onClick={trocarCamera}
+          disabled={dispositivos.length < 2 || estado === 'abrindo'}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-30"
           aria-label="Trocar câmera"
         >
           <RotateCcw size={16} />
@@ -143,6 +204,12 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
         {estado === 'erro' && (
           <div className="absolute inset-0 flex items-center justify-center p-6">
             <p className="text-white text-sm text-center">{erro}</p>
+          </div>
+        )}
+
+        {estado === 'pronta' && dispositivos.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-white/70 bg-black/40 px-2.5 py-1 rounded-full">
+            Câmera {indiceAtual + 1} de {dispositivos.length} — toque no ícone ↻ se não for a certa
           </div>
         )}
       </div>
