@@ -125,12 +125,18 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     const proximo = dispositivos[proximoIndice]
 
     setEstado('abrindo')
+    // A maioria dos celulares Android só permite UM stream de câmera ativo
+    // por vez — pedir o próximo dispositivo antes de soltar o atual faz o
+    // hardware recusar o pedido. Por isso paramos o stream atual primeiro.
+    streamRef.current?.getTracks().forEach((t) => t.stop())
+    streamRef.current = null
+    if (videoRef.current) videoRef.current.srcObject = null
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: proximo.deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       })
-      streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = stream
       if (videoRef.current) {
         videoRef.current.srcObject = stream
@@ -139,9 +145,27 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
       setIndiceAtual(proximoIndice)
       localStorage.setItem(CHAVE_CAMERA_PREFERIDA, proximo.deviceId)
       setEstado('pronta')
-    } catch {
-      setErro('Não foi possível trocar de câmera.')
-      setEstado('erro')
+    } catch (err) {
+      console.error('[CameraCapture] Falha ao trocar de câmera:', err)
+
+      // Não deixa o usuário sem nenhuma câmera ativa — tenta voltar pra que
+      // já estava funcionando antes da troca falhar.
+      const anterior = dispositivos[indiceAtual]
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: anterior.deviceId } },
+          audio: false,
+        })
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play()
+        }
+        setEstado('pronta')
+      } catch {
+        setErro('Não foi possível trocar de câmera.')
+        setEstado('erro')
+      }
     }
   }
 
