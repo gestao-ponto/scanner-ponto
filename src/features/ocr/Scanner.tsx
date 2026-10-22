@@ -5,6 +5,7 @@ import { processarOCR } from '@/features/ocr/ocrEngine'
 import { parseDataBR } from '@/utils/dateUtils'
 import { mensagemErroAmigavel } from '@/utils/errorMessages'
 import { useUIStore } from '@/store'
+import { CameraCapture } from '@/features/ocr/CameraCapture'
 
 // ─── Debug logger (silencioso em produção) ────────────────────────────────────
 const DEBUG = import.meta.env.DEV
@@ -92,6 +93,7 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
   const [fila, setFila] = useState<ItemFila[]>([])
   const [processando, setProcessando] = useState(false)
   const [progresso, setProgresso] = useState({ atual: 0, total: 0 })
+  const [cameraAberta, setCameraAberta] = useState(false)
   const filaRef = useRef<ItemFila[]>([])
   const contadorId = useRef(0)
   // Deduplicação: evita que dois inputs disparem handleFiles com o mesmo arquivo
@@ -254,6 +256,12 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
     processarFila(validos)
   }
 
+  const handleFotoCapturada = (file: File) => {
+    setCameraAberta(false)
+    dbg('Foto capturada pela câmera embutida:', file.name)
+    processarFila([file])
+  }
+
   const confirmarItem = async (id: number) => {
     const item = filaRef.current.find((i) => i.id === id)
     if (!item?.data || !item?.hora) return
@@ -286,19 +294,17 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
     <div className="p-4 flex flex-col gap-4">
       {/* Botões de captura */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Tirar Foto — abre câmera traseira diretamente */}
-        <label className="btn-primary flex flex-col items-center justify-center gap-2 py-5 cursor-pointer text-center">
+        {/* Tirar Foto — câmera embutida na própria página (ver CameraCapture.tsx:
+            evita abrir o app nativo de Câmera, que no Android derruba o PWA
+            instalado por pressão de memória e recarrega a página) */}
+        <button
+          onClick={() => setCameraAberta(true)}
+          className="btn-primary flex flex-col items-center justify-center gap-2 py-5 text-center"
+        >
           <Camera size={24} />
           <span className="text-sm font-semibold">Tirar Foto</span>
           <span className="text-xs opacity-70">Câmera traseira</span>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(e) => handleFiles(e.target.files)}
-          />
-        </label>
+        </button>
 
         {/* Selecionar da Galeria — múltiplas imagens */}
         <label className="btn-secondary flex flex-col items-center justify-center gap-2 py-5 cursor-pointer text-center">
@@ -425,6 +431,13 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
             </div>
           ))}
         </div>
+      )}
+
+      {cameraAberta && (
+        <CameraCapture
+          onCapture={handleFotoCapturada}
+          onClose={() => setCameraAberta(false)}
+        />
       )}
     </div>
   )
