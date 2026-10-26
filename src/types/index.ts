@@ -46,6 +46,7 @@ export interface DailySummary {
   banco_horas: number         // em minutos
   hora_extra: number          // em minutos
   intrajornada: number        // em minutos trabalhados no intervalo
+  horas_a_pagar: number       // em minutos ausentes dentro do expediente padrão
   status: StatusDia
   marcacoes: WorkRecord[]
   turno_especial?: boolean    // jornada padrão não se aplica neste dia

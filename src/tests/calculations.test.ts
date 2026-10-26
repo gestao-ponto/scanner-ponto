@@ -222,6 +222,58 @@ describe('Status do dia', () => {
   })
 })
 
+// ─── Horas a pagar (déficit dentro do expediente padrão) ──────────────────────
+
+describe('Horas a pagar', () => {
+  it('jornada completa e pontual → 0 a pagar', () => {
+    const r1 = calcularResumoDiario([
+      r('08:00', 1), r('12:00', 2), r('14:00', 3), r('18:00', 4),
+    ])
+    expect(r1.horas_a_pagar).toBe(0)
+  })
+
+  it('2 marcações 08:00→18:00 → 0 a pagar (almoço já implícito)', () => {
+    const r1 = calcularResumoDiario([r('08:00', 1), r('18:00', 2)])
+    expect(r1.horas_a_pagar).toBe(0)
+  })
+
+  it('chegou às 08:30 → 30min a pagar', () => {
+    const r1 = calcularResumoDiario([
+      r('08:30', 1), r('12:00', 2), r('14:00', 3), r('18:00', 4),
+    ])
+    expect(r1.horas_a_pagar).toBe(30)
+  })
+
+  it('chegou às 08:04 (dentro da tolerância) → 0 a pagar', () => {
+    const r1 = calcularResumoDiario([
+      r('08:04', 1), r('12:00', 2), r('14:00', 3), r('18:00', 4),
+    ])
+    expect(r1.horas_a_pagar).toBe(0)
+  })
+
+  it('saiu às 17:30 → 30min a pagar', () => {
+    const r1 = calcularResumoDiario([
+      r('08:00', 1), r('12:00', 2), r('14:00', 3), r('17:30', 4),
+    ])
+    expect(r1.horas_a_pagar).toBe(30)
+  })
+
+  it('só bateu de manhã, sem tarde → 240min a pagar', () => {
+    const r1 = calcularResumoDiario([r('08:00', 1), r('12:00', 2)])
+    expect(r1.horas_a_pagar).toBe(240)
+  })
+
+  it('ausente total (0 marcações) → 480min a pagar', () => {
+    const r1 = calcularResumoDiario([])
+    expect(r1.horas_a_pagar).toBe(480)
+  })
+
+  it('turno especial → 0 a pagar mesmo com jornada bem diferente', () => {
+    const r1 = calcularResumoDiario([r('08:00', 1), r('12:00', 2)], true)
+    expect(r1.horas_a_pagar).toBe(0)
+  })
+})
+
 // ─── Constantes exportadas ────────────────────────────────────────────────────
 
 describe('Constantes de tolerância', () => {

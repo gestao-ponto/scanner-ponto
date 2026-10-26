@@ -56,7 +56,8 @@ export function Dashboard() {
 
       <div className="grid grid-cols-2 gap-2.5">
         <StatCard icon={<Clock size={16} color="#3b82f6" />}      label="Trabalhadas"  value={minutosParaLabel(totais.horasTrabalhadas)} sub="neste período" />
-        <StatCard icon={<TrendingUp size={16} color="#f59e0b" />}  label="Banco"        value={minutosParaLabel(totais.bancoHoras)}        sub="acumulado" />
+        <StatCard icon={<TrendingUp size={16} color="#f59e0b" />}  label="Banco"        value={minutosParaLabel(totais.bancoHoras)}        sub="acumulado"
+          linhaExtra={totais.horasAPagar > 0 ? { label: 'A pagar', value: minutosParaLabel(totais.horasAPagar) } : undefined} />
         <StatCard icon={<AlertCircle size={16} color="#ef4444" />} label="Extras"       value={minutosParaLabel(totais.horasExtras)}       sub="este período" />
         <StatCard
           icon={<CheckCircle size={16} color="#22c55e" />}
@@ -122,12 +123,13 @@ export function Dashboard() {
   )
 }
 
-function StatCard({ icon, label, value, sub, badge }: {
+function StatCard({ icon, label, value, sub, badge, linhaExtra }: {
   icon: React.ReactNode
   label: string
   value: string
   sub: string
   badge?: string
+  linhaExtra?: { label: string; value: string }
 }) {
   return (
     <div className="rounded-2xl p-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
@@ -142,6 +144,13 @@ function StatCard({ icon, label, value, sub, badge }: {
           style={{ background: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' }}>
           {badge}
         </span>
+      )}
+      {linhaExtra && (
+        <div className="flex items-center justify-between mt-1.5 pt-1.5"
+          style={{ borderTop: '1px solid var(--border)' }}>
+          <span className="text-[10px]" style={{ color: 'var(--badge-red-text)' }}>{linhaExtra.label}</span>
+          <span className="text-[10px] font-semibold" style={{ color: 'var(--badge-red-text)' }}>{linhaExtra.value}</span>
+        </div>
       )}
     </div>
   )

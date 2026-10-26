@@ -26,6 +26,19 @@ const INICIO_BANCO = SAIDA_NORMAL_MAX  // 18:05
 // Hora extra começa após 20:05 (tolerância no limite do banco)
 const INICIO_EXTRA = LIMITE_BANCO + TOL  // 20:05
 
+// "Encaixa" um horário no ponto padrão mais próximo se estiver dentro da
+// banda de ±5min dele — usado pra não cobrar déficit de alguém que bateu
+// o ponto 1-5min antes/depois do horário certo (mesma tolerância aplicada
+// em todo o resto do app). As quatro bandas não se sobrepõem entre si, então
+// isso é seguro de aplicar em qualquer horário de entrada ou saída.
+function encaixarNaTolerancia(minuto: number): number {
+  if (minuto >= ENTRADA_MIN        && minuto <= ENTRADA_MAX)        return ENTRADA
+  if (minuto >= SAIDA_ALMOCO_MIN   && minuto <= SAIDA_ALMOCO_MAX)   return SAIDA_ALMOCO
+  if (minuto >= RETORNO_ALMOCO_MIN && minuto <= RETORNO_ALMOCO_MAX) return RETORNO_ALMOCO
+  if (minuto >= SAIDA_NORMAL_MIN   && minuto <= SAIDA_NORMAL_MAX)   return SAIDA_NORMAL
+  return minuto
+}
+
 // ─── Mapeamento de marcação por posição (fallback) ────────────────────────────
 const TIPOS_ORDEM: TipoMarcacao[] = [
   'entrada_manha',
@@ -97,6 +110,37 @@ function calcularBancoExtra(saida: number): { banco: number; extra: number } {
   return { banco, extra }
 }
 
+// ─── Horas a pagar (déficit dentro do expediente padrão) ──────────────────────
+//
+// Minutos do horário habitual (08:00-12:00 e 14:00-18:00 = 480min/dia) em
+// que o usuário NÃO esteve presente: atraso, saída antecipada, ausência
+// total. Independe de qual par é "manhã" ou "tarde" — soma a sobreposição
+// de CADA par registrado com as duas janelas padrão, então funciona tanto
+// pra dias com 4 marcações quanto pra dias com só 2 (08:00→18:00 direto).
+function calcularHorasAPagarDoDia(marcacoes: number[], isDiaEspecial: boolean): number {
+  if (isDiaEspecial) return 0
+
+  const ESPERADO = (SAIDA_ALMOCO - ENTRADA) + (SAIDA_NORMAL - RETORNO_ALMOCO)  // 480min
+
+  const pares: Array<[number, number]> = []
+  for (let i = 0; i + 1 < marcacoes.length; i += 2) {
+    pares.push([marcacoes[i], marcacoes[i + 1]])
+  }
+
+  let presente = 0
+  for (const [entradaBruta, saidaBruta] of pares) {
+    const entrada = encaixarNaTolerancia(entradaBruta)
+    const saida   = encaixarNaTolerancia(saidaBruta)
+    if (saida <= entrada) continue
+
+    presente += Math.max(0, Math.min(saida, SAIDA_ALMOCO) - Math.max(entrada, ENTRADA))
+    presente += Math.max(0, Math.min(saida, SAIDA_NORMAL) - Math.max(entrada, RETORNO_ALMOCO))
+  }
+
+  presente = Math.min(presente, ESPERADO)
+  return Math.max(0, ESPERADO - presente)
+}
+
 // ─── Cálculo do resumo diário ─────────────────────────────────────────────────
 
 // `isDiaEspecial`: quando true, a jornada padrão (SAIDA_NORMAL/LIMITE_BANCO)
@@ -122,6 +166,7 @@ export function calcularResumoDiario(
       banco_horas: 0,
       hora_extra: 0,
       intrajornada: 0,
+      horas_a_pagar: calcularHorasAPagarDoDia(marcacoes, isDiaEspecial),
       status: marcacoes.length === 1 ? 'incompleto' : 'ausente',
       marcacoes: ordenados,
       turno_especial: isDiaEspecial,
@@ -188,6 +233,7 @@ export function calcularResumoDiario(
     banco_horas: bancoHoras,
     hora_extra: horaExtra,
     intrajornada,
+    horas_a_pagar: calcularHorasAPagarDoDia(marcacoes, isDiaEspecial),
     status: (bancoHoras > 0 || horaExtra > 0) ? 'completo' : status,
     marcacoes: ordenados,
     turno_especial: isDiaEspecial,
@@ -213,19 +259,34 @@ export interface TotaisPeriodo {
   bancoHoras: number
   horasExtras: number
   intrajornada: number
+  horasAPagar: number
+}
+
+// Formato YYYY-MM-DD da data local de hoje — mesmo formato de WorkRecord.data
+function hojeISO(): string {
+  const hoje = new Date()
+  const ano = hoje.getFullYear()
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0')
+  const dia = String(hoje.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
 }
 
 export function calcularTotaisPeriodo(
   summaries: Array<Omit<DailySummary, 'id' | 'user_id'>>
 ): TotaisPeriodo {
+  const hoje = hojeISO()
+
   return summaries.reduce(
     (acc, s) => ({
       horasTrabalhadas: acc.horasTrabalhadas + s.horas_trabalhadas,
       bancoHoras:       acc.bancoHoras       + s.banco_horas,
       horasExtras:      acc.horasExtras      + s.hora_extra,
       intrajornada:     acc.intrajornada     + s.intrajornada,
+      // Só soma déficit de dias que já terminaram — um dia em andamento
+      // (hoje) ainda não teve chance de completar o expediente.
+      horasAPagar:      acc.horasAPagar      + (s.data < hoje ? s.horas_a_pagar : 0),
     }),
-    { horasTrabalhadas: 0, bancoHoras: 0, horasExtras: 0, intrajornada: 0 }
+    { horasTrabalhadas: 0, bancoHoras: 0, horasExtras: 0, intrajornada: 0, horasAPagar: 0 }
   )
 }
 
