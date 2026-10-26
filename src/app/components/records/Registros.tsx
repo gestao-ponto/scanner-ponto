@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Trash2, Filter } from 'lucide-react'
 import { useRecords } from '@/features/work-records/useRecords'
-import { formatDataBR } from '@/utils/dateUtils'
+import { formatDataBR, formatDataLonga, minutosParaLabel } from '@/utils/dateUtils'
 import type { WorkRecord } from '@/types'
 
 type Filtro = 'todos' | 'pendentes' | 'extras'
@@ -29,6 +29,20 @@ export function Registros() {
       return a.hora.localeCompare(b.hora)
     })
   }, [records, filtro, busca, diasComExtra, diasPendentes])
+
+  // Agrupar por dia — a lista já vem ordenada por data, então basta juntar
+  // itens consecutivos com a mesma data (evita repetir a data em cada linha).
+  const gruposPorDia = useMemo(() => {
+    const grupos: { data: string; registros: WorkRecord[] }[] = []
+    for (const r of registrosFiltrados) {
+      const ultimo = grupos[grupos.length - 1]
+      if (ultimo && ultimo.data === r.data) ultimo.registros.push(r)
+      else grupos.push({ data: r.data, registros: [r] })
+    }
+    return grupos
+  }, [registrosFiltrados])
+
+  const summaryMap = useMemo(() => new Map(summaries.map(s => [s.data, s])), [summaries])
 
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
@@ -84,15 +98,43 @@ export function Registros() {
           </div>
         ) : (
           <div>
-            {registrosFiltrados.map((record) => (
-              <RecordRow key={record.id} record={record}
-                confirmDelete={confirmDelete === record.id}
-                onDelete={() => handleDelete(record.id)}
-                hasExtra={diasComExtra.has(record.data)} />
+            {gruposPorDia.map((grupo) => (
+              <div key={grupo.data}>
+                <DayHeader
+                  data={grupo.data}
+                  qtd={grupo.registros.length}
+                  horasTrabalhadas={summaryMap.get(grupo.data)?.horas_trabalhadas ?? 0}
+                />
+                {grupo.registros.map((record) => (
+                  <RecordRow key={record.id} record={record}
+                    confirmDelete={confirmDelete === record.id}
+                    onDelete={() => handleDelete(record.id)}
+                    hasExtra={diasComExtra.has(record.data)} />
+                ))}
+              </div>
             ))}
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function DayHeader({ data, qtd, horasTrabalhadas }: {
+  data: string
+  qtd: number
+  horasTrabalhadas: number
+}) {
+  return (
+    <div className="flex items-baseline justify-between px-4 pt-3 pb-1.5"
+      style={{ background: 'var(--bg-base)' }}>
+      <p className="text-xs font-semibold capitalize" style={{ color: 'var(--text-primary)' }}>
+        {formatDataLonga(data)}
+      </p>
+      <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>
+        {qtd} marcaç{qtd === 1 ? 'ão' : 'ões'}
+        {horasTrabalhadas > 0 && ` · ${minutosParaLabel(horasTrabalhadas)}`}
+      </p>
     </div>
   )
 }
@@ -108,11 +150,6 @@ function RecordRow({ record, confirmDelete, onDelete, hasExtra }: {
       style={{ borderBottom: '1px solid var(--border)' }}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--row-hover)')}
       onMouseLeave={e => (e.currentTarget.style.background = '')}>
-      <div className="w-20 shrink-0">
-        <p className="text-xs font-mono font-semibold" style={{ color: 'var(--text-secondary)' }}>
-          {formatDataBR(record.data)}
-        </p>
-      </div>
       <div className="w-14 shrink-0">
         <p className="text-sm font-mono font-bold" style={{ color: 'var(--text-primary)' }}>
           {record.hora.slice(0, 5)}

@@ -449,12 +449,20 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
 
 // ─── Manual Entry ─────────────────────────────────────────────────────────────
 
+// Maioria dos registros manuais é "agora mesmo" — pré-preencher poupa o
+// toque de abrir o seletor de hora. Continua editável pra quem precisa de
+// outro horário.
+function horaAtualHHMM(): string {
+  const agora = new Date()
+  return `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`
+}
+
 function ManualEntry({ onCaptura }: { onCaptura: (data: string, hora: string) => Promise<void> }) {
   const hoje = new Date()
   const dataHoje = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`
 
   const [data, setData] = useState(dataHoje)
-  const [hora, setHora] = useState('')
+  const [hora, setHora] = useState(horaAtualHHMM)
   const [loading, setLoading] = useState(false)
   const [sucesso, setSucesso] = useState(false)
   const [erro, setErro] = useState('')
@@ -470,7 +478,7 @@ function ManualEntry({ onCaptura }: { onCaptura: (data: string, hora: string) =>
       dbg('Manual entry:', { dataBR, hora })
       await onCaptura(dataBR, hora)
       setSucesso(true)
-      setHora('')
+      setHora(horaAtualHHMM())
       setTimeout(() => setSucesso(false), 2000)
     } catch (err) {
       dbg('Erro no registro manual:', err)
