@@ -147,7 +147,12 @@ export async function getRegistrosPeriodo(
       const serverRecords = await pullRecordsFromServer(userId, inicio, fim)
       dbg('Registros do servidor:', serverRecords.length)
       await upsertRecordsLocal(serverRecords)
-      return serverRecords
+      // A tabela work_records no Supabase não tem coluna `sincronizado`
+      // (isso é um conceito só do IndexedDB local, pra fila offline) — o
+      // que acabou de vir do servidor sempre está sincronizado por
+      // definição. Sem isso, a UI mostrava "pendente" em tudo, porque o
+      // campo chegava undefined do Supabase.
+      return serverRecords.map((r) => ({ ...r, sincronizado: true }))
     } catch (err) {
       dbg('Falha ao buscar do servidor, usando local:', err)
     }
