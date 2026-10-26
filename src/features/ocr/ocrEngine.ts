@@ -12,6 +12,29 @@ function dbg(...args: unknown[]) {
   if (DEBUG) console.log('[ocrEngine]', ...args)
 }
 
+// ─── Sanidade da data lida ─────────────────────────────────────────────────────
+//
+// O relógio de ponto físico imprime a data REAL do momento da batida — uma
+// leitura que não bate com o dia de hoje (±1, pra cobrir virada de meia-
+// noite) é quase sempre erro de OCR num dígito (ex.: "5" lido como "6" em
+// papel térmico desgastado), não uma data retroativa legítima. Nesse caso
+// não salvamos direto — cai no fluxo de confirmação manual.
+const TOLERANCIA_DATA_DIAS = 1
+
+function dataDentroDaTolerancia(dataBR: string): boolean {
+  const [d, m, y] = dataBR.split('/').map(Number)
+  if (!d || !m || !y) return false
+
+  const dataComprovante = new Date(y, m - 1, d)
+  dataComprovante.setHours(0, 0, 0, 0)
+
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+
+  const diffDias = Math.abs((hoje.getTime() - dataComprovante.getTime()) / 86_400_000)
+  return diffDias <= TOLERANCIA_DATA_DIAS
+}
+
 // ─── Pré-processamento ────────────────────────────────────────────────────────
 
 export async function preprocessImage(imageSource: string | File | Blob): Promise<string> {
@@ -123,15 +146,24 @@ export async function processarOCR(imageSource: string | File | Blob): Promise<O
   dbg('Data identificada:', dataExtraida)
   dbg('Hora identificada:', horaExtraida)
 
-  const confianca = dataExtraida && horaExtraida ? 95 : dataExtraida || horaExtraida ? 50 : 0
-  dbg('Confiança:', confianca, '| Sucesso:', !!(dataExtraida && horaExtraida))
+  const dataImplausivel = !!dataExtraida && !dataDentroDaTolerancia(dataExtraida)
+  if (dataImplausivel) {
+    dbg('Data lida foge da tolerância de hoje — tratando como baixa confiança:', dataExtraida)
+  }
+
+  const confianca = dataExtraida && horaExtraida
+    ? (dataImplausivel ? 40 : 95)
+    : dataExtraida || horaExtraida ? 50 : 0
+  const sucesso = !!(dataExtraida && horaExtraida) && !dataImplausivel
+  dbg('Confiança:', confianca, '| Sucesso:', sucesso)
 
   return {
     data: dataExtraida,
     hora: horaExtraida,
     confianca,
     texto_bruto: textoBruto,
-    sucesso: !!(dataExtraida && horaExtraida),
+    sucesso,
+    dataImplausivel,
   }
 }
 

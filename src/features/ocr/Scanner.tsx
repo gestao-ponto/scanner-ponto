@@ -159,13 +159,17 @@ function FotoUpload({ onCaptura }: { onCaptura: (data: string, hora: string) => 
       return
     }
 
-    // Parcial — tem data e hora mas confiança baixa
+    // Parcial — tem data e hora mas confiança baixa, ou a data lida não bate
+    // com hoje (provável erro de OCR num dígito) — pede confirmação manual
+    // em vez de salvar direto.
     if (ocr.data && ocr.hora) {
       dbg(`Confiança baixa (${ocr.confianca}%), aguardando confirmação`)
       atualizarItem(item.id, {
         status: 'confirmacao',
         resultado: `${ocr.data} às ${ocr.hora}`,
-        motivoPendencia: `Confiança OCR: ${ocr.confianca}%`,
+        motivoPendencia: ocr.dataImplausivel
+          ? `Data lida (${ocr.data}) é diferente de hoje — confira se está certa antes de salvar.`
+          : `Confiança OCR: ${ocr.confianca}%`,
         data: ocr.data,
         hora: ocr.hora,
         confianca: ocr.confianca,

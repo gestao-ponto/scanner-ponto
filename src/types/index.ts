@@ -97,6 +97,7 @@ export interface OcrResult {
   confianca: number           // 0-100
   texto_bruto: string
   sucesso: boolean
+  dataImplausivel?: boolean   // data lida foge muito de hoje — provável erro de OCR
 }
 
 // ─── Estado offline/sync ─────────────────────────────────────────────────────
